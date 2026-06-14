@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BearCoach } from './components/BearCoach';
 import { DriftReset } from './components/DriftReset';
 import { FocusTimer } from './components/FocusTimer';
+import { InstallBearMode } from './components/InstallBearMode';
 import { KodiakAvatar } from './components/KodiakAvatar';
 import { MissionReminder } from './components/MissionReminder';
 import { ProgressPanel } from './components/ProgressPanel';
@@ -216,6 +217,8 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      <InstallBearMode />
 
       <BearCoach
         message={coachMessage}
