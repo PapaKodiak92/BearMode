@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './KodiakAvatar.css';
 
 type KodiakAvatarProps = {
@@ -7,20 +7,43 @@ type KodiakAvatarProps = {
   label?: string;
 };
 
+const roarVideoSrc = '/kodiak-roar.mp4';
+
 export function KodiakAvatar({ active = false, variant = 'coach', label = 'Kodiak bear coach' }: KodiakAvatarProps) {
-  const [roarVideoUnavailable, setRoarVideoUnavailable] = useState(false);
-  const showRoarVideo = active && !roarVideoUnavailable;
-  const showSyntheticRoar = active && roarVideoUnavailable;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [roarVideoReady, setRoarVideoReady] = useState(false);
+  const [roarVideoFailed, setRoarVideoFailed] = useState(false);
+  const showRoarVideo = active && !roarVideoFailed;
 
   useEffect(() => {
     if (!active) {
-      setRoarVideoUnavailable(false);
+      setRoarVideoReady(false);
+      setRoarVideoFailed(false);
+      videoRef.current?.pause();
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+      }
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    video.currentTime = 0;
+    const playPromise = video.play();
+    if (playPromise) {
+      playPromise.catch(() => {
+        // The visual alert still shows the static Kodiak if a browser blocks video playback.
+        setRoarVideoFailed(true);
+      });
     }
   }, [active]);
 
   return (
     <div
-      className={`kodiak-avatar kodiak-avatar--${variant}${active ? ' is-roaring' : ''}${showRoarVideo ? ' has-roar-video' : ''}`}
+      className={`kodiak-avatar kodiak-avatar--${variant}${active ? ' is-roaring' : ''}${showRoarVideo ? ' has-roar-video' : ''}${roarVideoReady ? ' video-ready' : ''}${roarVideoFailed ? ' video-failed' : ''}`}
       role="img"
       aria-label={label}
     >
@@ -28,33 +51,20 @@ export function KodiakAvatar({ active = false, variant = 'coach', label = 'Kodia
 
       {showRoarVideo && (
         <video
+          ref={videoRef}
           className="kodiak-avatar__roar-video"
+          src={roarVideoSrc}
           autoPlay
           muted
           loop
           playsInline
+          preload="auto"
           poster="/kodiak-coach.png"
           aria-hidden="true"
-          onError={() => setRoarVideoUnavailable(true)}
-        >
-          <source src="/kodiak-roar.webm" type="video/webm" />
-          <source src="/kodiak-roar.mp4" type="video/mp4" />
-        </video>
-      )}
-
-      {showSyntheticRoar && (
-        <>
-          <span className="kodiak-avatar__jaw" aria-hidden="true">
-            <span className="kodiak-avatar__mouth" />
-            <span className="kodiak-avatar__teeth kodiak-avatar__teeth--top" />
-            <span className="kodiak-avatar__teeth kodiak-avatar__teeth--bottom" />
-          </span>
-
-          <span className="kodiak-avatar__breath kodiak-avatar__breath--one" aria-hidden="true" />
-          <span className="kodiak-avatar__breath kodiak-avatar__breath--two" aria-hidden="true" />
-          <span className="kodiak-avatar__ring kodiak-avatar__ring--one" aria-hidden="true" />
-          <span className="kodiak-avatar__ring kodiak-avatar__ring--two" aria-hidden="true" />
-        </>
+          onCanPlay={() => setRoarVideoReady(true)}
+          onLoadedData={() => setRoarVideoReady(true)}
+          onError={() => setRoarVideoFailed(true)}
+        />
       )}
     </div>
   );
