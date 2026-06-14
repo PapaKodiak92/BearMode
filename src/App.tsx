@@ -21,7 +21,7 @@ const KODIAK_ALERT_SOUND_URL = '/kodiak-alert.mp3';
 const KODIAK_ALERT_DURATION_MS = 41_000;
 const MIN_VALID_ALERT_SECONDS = 0.2;
 
-type AppTab = 'dashboard' | 'setup' | 'calendar' | 'progress';
+type AppTab = 'dashboard' | 'focus' | 'alarms' | 'calendar' | 'progress' | 'setup';
 
 const defaultProfile: BearModeProfile = {
   displayName: '',
@@ -55,10 +55,12 @@ const fallbackState: BearModeState = {
 };
 
 const tabs: { id: AppTab; label: string; description: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', description: 'Today, focus, drift reset' },
-  { id: 'setup', label: 'Setup', description: 'Profile, install, coach style' },
-  { id: 'calendar', label: 'Calendar', description: 'Plan blocks and missions' },
-  { id: 'progress', label: 'Progress', description: 'Wins and streak proof' }
+  { id: 'dashboard', label: 'Home', description: 'Mission only' },
+  { id: 'focus', label: 'Focus', description: 'Timer + drift reset' },
+  { id: 'alarms', label: 'Alarms', description: 'Kodiak alerts' },
+  { id: 'calendar', label: 'Calendar', description: 'Plan blocks' },
+  { id: 'progress', label: 'Progress', description: 'Wins proof' },
+  { id: 'setup', label: 'Setup', description: 'Profile + app shell' }
 ];
 
 function today() {
@@ -244,17 +246,17 @@ export default function App() {
 
   return (
     <main className={`app-shell${kodiakAlertPlaying ? ' alert-active' : ''}`}>
-      <header className="hero">
+      <header className="hero compact-hero">
         <nav>
           <strong>BearMode</strong>
           <span>{state.profile.displayName ? `Welcome back, ${state.profile.displayName}.` : 'Enter BearMode. Stack wins.'}</span>
         </nav>
         <div className="hero-content">
           <div>
-            <p className="eyebrow">Daily discipline app</p>
-            <h1>{state.profile.displayName ? `${state.profile.displayName}, enter BearMode.` : 'Your no-BS bear coach for real life.'}</h1>
+            <p className="eyebrow">Daily command center</p>
+            <h1>{state.profile.displayName ? `${state.profile.displayName}, choose the next win.` : 'One mission. One next move.'}</h1>
             <p>
-              {state.profile.reason || 'Pick today\'s mission, run lock-in sessions, recover when you drift, and build proof one win at a time.'}
+              {state.profile.reason || 'Keep the home screen clean. Mission first. Details live in the tabs below.'}
             </p>
           </div>
 
@@ -315,7 +317,7 @@ export default function App() {
       </div>
 
       {activeTab === 'dashboard' && (
-        <section className="dashboard-grid">
+        <section className="dashboard-grid dashboard-home-grid">
           <TodayBoard
             mainMission={state.mainMission}
             sideQuests={state.sideQuests}
@@ -338,6 +340,23 @@ export default function App() {
             }))}
           />
 
+          <DashboardQuickPanel
+            profile={state.profile}
+            wins={state.wins.length}
+            calendarCount={state.calendarItems.length}
+            completedSideQuests={completedSideQuests}
+            completedHabits={completedHabits}
+            totalSideQuests={state.sideQuests.length}
+            totalHabits={state.habits.length}
+            onGoFocus={() => setActiveTab('focus')}
+            onGoAlarms={() => setActiveTab('alarms')}
+            onGoCalendar={() => setActiveTab('calendar')}
+          />
+        </section>
+      )}
+
+      {activeTab === 'focus' && (
+        <section className="dashboard-grid">
           <FocusTimer
             minutes={state.focusMinutes}
             onMinutesChange={(focusMinutes) => setState((current) => ({ ...current, focusMinutes }))}
@@ -345,13 +364,6 @@ export default function App() {
               playRoar();
               addWin(`${state.focusMinutes}-minute focus block`, 'focus');
             }}
-          />
-
-          <MissionReminder
-            mission={state.mainMission}
-            alertPlaying={kodiakAlertPlaying}
-            onStartAlert={startKodiakAlert}
-            onStopAlert={stopKodiakAlert}
           />
 
           <DriftReset
@@ -364,8 +376,26 @@ export default function App() {
               addWin(state.resetAction || 'Started a 5-minute comeback', 'driftReset');
             }}
           />
+        </section>
+      )}
 
-          <ProgressPanel wins={state.wins} />
+      {activeTab === 'alarms' && (
+        <section className="dashboard-grid">
+          <MissionReminder
+            mission={state.mainMission}
+            alertPlaying={kodiakAlertPlaying}
+            onStartAlert={startKodiakAlert}
+            onStopAlert={stopKodiakAlert}
+          />
+          <section className="panel grid-span-2 calm-panel">
+            <p className="eyebrow">Alarm Center</p>
+            <h2>Kodiak alerts live here now.</h2>
+            <p className="muted">Dashboard stays clean. Alarms, reminders, and future repeating alerts will be managed from this tab.</p>
+            <div className="dashboard-actions">
+              <button onClick={startKodiakAlert}>{kodiakAlertPlaying ? 'Restart Alert' : 'Test Kodiak Alert'}</button>
+              <button className="secondary" onClick={stopKodiakAlert} disabled={!kodiakAlertPlaying}>Stop Alert</button>
+            </div>
+          </section>
         </section>
       )}
 
@@ -392,12 +422,6 @@ export default function App() {
               ...current,
               calendarItems: current.calendarItems.filter((item) => item.id !== id)
             }))}
-          />
-          <MissionReminder
-            mission={state.mainMission}
-            alertPlaying={kodiakAlertPlaying}
-            onStartAlert={startKodiakAlert}
-            onStopAlert={stopKodiakAlert}
           />
         </section>
       )}
@@ -430,6 +454,65 @@ export default function App() {
         </section>
       )}
     </main>
+  );
+}
+
+function DashboardQuickPanel({
+  profile,
+  wins,
+  calendarCount,
+  completedSideQuests,
+  completedHabits,
+  totalSideQuests,
+  totalHabits,
+  onGoFocus,
+  onGoAlarms,
+  onGoCalendar
+}: {
+  profile: BearModeProfile;
+  wins: number;
+  calendarCount: number;
+  completedSideQuests: number;
+  completedHabits: number;
+  totalSideQuests: number;
+  totalHabits: number;
+  onGoFocus: () => void;
+  onGoAlarms: () => void;
+  onGoCalendar: () => void;
+}) {
+  return (
+    <section className="panel quick-panel">
+      <p className="eyebrow">Command</p>
+      <h2>Keep it simple.</h2>
+      <p className="muted">
+        {profile.identity || 'The dashboard is for today only. Everything else has its own tab.'}
+      </p>
+
+      <div className="quick-stat-stack">
+        <div>
+          <strong>{completedSideQuests}/{totalSideQuests}</strong>
+          <span>side quests</span>
+        </div>
+        <div>
+          <strong>{completedHabits}/{totalHabits}</strong>
+          <span>habits</span>
+        </div>
+        <div>
+          <strong>{wins}</strong>
+          <span>wins</span>
+        </div>
+        <div>
+          <strong>{calendarCount}</strong>
+          <span>calendar blocks</span>
+        </div>
+      </div>
+
+      <div className="dashboard-actions compact-actions">
+        <button onClick={onGoFocus}>Start Focus</button>
+        <button className="secondary" onClick={onGoAlarms}>Set Alarm</button>
+        <button className="secondary" onClick={onGoCalendar}>Plan Day</button>
+      </div>
+    </section>
   );
 }
 
