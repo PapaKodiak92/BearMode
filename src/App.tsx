@@ -81,6 +81,72 @@ function normalizeState(stored: Partial<BearModeState>): BearModeState {
   };
 }
 
+function getKodiakDashboardCopy(profile: BearModeProfile, completedActions: number, totalActions: number, wins: number) {
+  const name = profile.displayName?.trim() || 'rookie';
+  const hasTasks = totalActions > 0;
+
+  if (!hasTasks) {
+    return {
+      tone: 'neutral',
+      label: 'No board yet',
+      headline: 'Kodiak needs a target.',
+      body: 'Add a mission, a few side quests, and some habits. A bear cannot hunt a blank forest.'
+    };
+  }
+
+  if (completedActions === 0) {
+    if (profile.coachStyle === 'calm') {
+      return {
+        tone: 'warning',
+        label: 'No wins yet',
+        headline: 'Start tiny. Start now.',
+        body: 'No shame spiral. Pick the smallest useful move and give yourself proof that today is not dead.'
+      };
+    }
+
+    if (profile.coachStyle === 'unhinged') {
+      return {
+        tone: 'danger',
+        label: 'Kodiak is judging',
+        headline: `${name}, you have not done shit yet.`,
+        body: 'Stop decorating the dashboard. Hit one side quest, drink water, or start a focus block before Kodiak starts yelling.'
+      };
+    }
+
+    return {
+      tone: 'danger',
+      label: 'No wins yet',
+      headline: `${name}, the board is still untouched.`,
+      body: 'One clean win changes the whole day. Pick something small, finish it, and stack proof.'
+    };
+  }
+
+  if (completedActions < Math.ceil(totalActions * 0.5)) {
+    return {
+      tone: 'warning',
+      label: 'Momentum started',
+      headline: 'Good. Now stack another one.',
+      body: 'You cracked the day open. Do not wander off. Finish one more thing while momentum is warm.'
+    };
+  }
+
+  if (completedActions < totalActions) {
+    return {
+      tone: 'good',
+      label: 'Locked in',
+      headline: 'You are moving like you mean it.',
+      body: 'The day has shape now. Keep it simple: finish the next obvious thing and protect the streak.'
+    };
+  }
+
+  return {
+    tone: 'victory',
+    label: wins > 0 ? 'Proof stacked' : 'Board cleared',
+    headline: 'Kodiak approves. Today has teeth.',
+    body: 'The list is handled. Log the win, plan tomorrow, and do not let the comeback energy disappear.'
+  };
+}
+
 export default function App() {
   const [state, setState] = useState<BearModeState>(() => normalizeState(loadState<Partial<BearModeState>>(STORAGE_KEY, fallbackState)));
   const [coachMessage, setCoachMessage] = useState(randomBearLine('morning'));
@@ -315,9 +381,11 @@ export default function App() {
           totalSideQuests={state.sideQuests.length}
           totalHabits={state.habits.length}
           wins={state.wins.length}
+          calendarBlocks={state.calendarItems.length}
           onGoMission={() => setActiveTab('mission')}
           onGoFocus={() => setActiveTab('focus')}
           onGoAlarms={() => setActiveTab('alarms')}
+          onGoProgress={() => setActiveTab('progress')}
         />
       )}
 
@@ -457,9 +525,11 @@ function HomeDashboard({
   totalSideQuests,
   totalHabits,
   wins,
+  calendarBlocks,
   onGoMission,
   onGoFocus,
-  onGoAlarms
+  onGoAlarms,
+  onGoProgress
 }: {
   profile: BearModeProfile;
   mainMission: string;
@@ -468,42 +538,80 @@ function HomeDashboard({
   totalSideQuests: number;
   totalHabits: number;
   wins: number;
+  calendarBlocks: number;
   onGoMission: () => void;
   onGoFocus: () => void;
   onGoAlarms: () => void;
+  onGoProgress: () => void;
 }) {
+  const totalActions = totalSideQuests + totalHabits;
+  const completedActions = completedSideQuests + completedHabits;
+  const remainingActions = Math.max(0, totalActions - completedActions);
+  const completionPercent = totalActions ? Math.round((completedActions / totalActions) * 100) : 0;
+  const coachCopy = getKodiakDashboardCopy(profile, completedActions, totalActions, wins);
+
   return (
-    <section className="home-dashboard">
-      <section className="panel home-primary-card">
-        <p className="eyebrow">Home</p>
-        <h2>Today is simple.</h2>
-        <div className="home-mission-box">
-          <span>Main mission</span>
-          <strong>{mainMission || 'Choose one mission for today.'}</strong>
+    <section className="dashboard-command-center">
+      <section className={`panel kodiak-status-card tone-${coachCopy.tone}`}>
+        <div>
+          <p className="eyebrow">{coachCopy.label}</p>
+          <h2>{coachCopy.headline}</h2>
+          <p>{coachCopy.body}</p>
         </div>
-        <p className="muted">
-          {profile.desiredChange || 'Do not manage the whole life from this screen. Pick the mission, enter BearMode, and move.'}
-        </p>
-        <div className="home-action-row">
-          <button onClick={onGoFocus}>Enter BearMode</button>
-          <button className="secondary" onClick={onGoMission}>Edit Mission</button>
-          <button className="secondary" onClick={onGoAlarms}>Set Alarm</button>
+        <KodiakAvatar variant="coach" active={coachCopy.tone === 'danger'} />
+      </section>
+
+      <section className="dashboard-stat-strip" aria-label="Today stats">
+        <div className="mini-panel stat-chip">
+          <strong>{completionPercent}%</strong>
+          <span>today handled</span>
+        </div>
+        <div className="mini-panel stat-chip">
+          <strong>{completedActions}/{totalActions || 0}</strong>
+          <span>actions done</span>
+        </div>
+        <div className="mini-panel stat-chip">
+          <strong>{wins}</strong>
+          <span>wins stacked</span>
+        </div>
+        <div className="mini-panel stat-chip">
+          <strong>{calendarBlocks}</strong>
+          <span>blocks planned</span>
         </div>
       </section>
 
-      <section className="home-mini-row" aria-label="Today summary">
-        <div className="mini-panel home-mini-card">
-          <strong>{completedSideQuests}/{totalSideQuests}</strong>
-          <span>Side quests</span>
-        </div>
-        <div className="mini-panel home-mini-card">
-          <strong>{completedHabits}/{totalHabits}</strong>
-          <span>Habits hit</span>
-        </div>
-        <div className="mini-panel home-mini-card">
-          <strong>{wins}</strong>
-          <span>Wins stacked</span>
-        </div>
+      <section className="dashboard-lower-grid">
+        <section className="panel mission-focus-card">
+          <div className="panel-header compact-panel-header">
+            <div>
+              <p className="eyebrow">Mission</p>
+              <h2>One win that matters.</h2>
+            </div>
+            <span className="pill">{remainingActions} left</span>
+          </div>
+
+          <div className="home-mission-box slim-mission-box">
+            <span>Main mission</span>
+            <strong>{mainMission || 'Choose one mission for today.'}</strong>
+          </div>
+
+          <div className="home-action-row equal-actions">
+            <button onClick={onGoFocus}>Start Focus</button>
+            <button className="secondary" onClick={onGoMission}>Tasks</button>
+            <button className="secondary" onClick={onGoAlarms}>Alarm</button>
+          </div>
+        </section>
+
+        <section className="panel next-move-card">
+          <p className="eyebrow">Coach Order</p>
+          <h2>{completedActions === 0 ? 'Break the seal.' : 'Keep the chain hot.'}</h2>
+          <p className="muted">
+            {completedActions === 0
+              ? 'Do one tiny thing. Check one box. Make the dashboard earn the right to look cool.'
+              : 'You already moved. Do not overthink it. Finish the next obvious action.'}
+          </p>
+          <button className="secondary" onClick={onGoProgress}>Review proof</button>
+        </section>
       </section>
     </section>
   );
