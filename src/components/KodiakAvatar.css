@@ -1,0 +1,21 @@
+.kodiak-avatar.has-roar-video {
+  animation: kodiakRoarBody 0.42s ease-in-out infinite;
+}
+
+.kodiak-avatar.has-roar-video .kodiak-avatar__image {
+  opacity: 0;
+}
+
+.kodiak-avatar__roar-video {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+  border: 1px solid rgba(255,179,92,0.5);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.42), 0 0 0 5px rgba(255,179,92,0.11), 0 0 60px rgba(255,179,92,0.28);
+  background: #120d09;
+}
