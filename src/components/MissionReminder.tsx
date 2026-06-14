@@ -8,33 +8,85 @@ type MissionReminderProps = {
   onStopAlert: () => void;
 };
 
-type StoredReminder = {
+type KodiakAlarm = {
+  id: string;
+  title: string;
   time: string;
-  label: string;
   enabled: boolean;
+  repeat: 'daily' | 'once';
   lastTriggeredDate: string;
 };
 
-const STORAGE_KEY = 'bearmode:mission-reminder';
-const DEFAULT_REMINDER: StoredReminder = {
-  time: '09:00',
-  label: '',
-  enabled: false,
-  lastTriggeredDate: ''
+type LegacyReminder = {
+  time?: string;
+  label?: string;
+  enabled?: boolean;
+  lastTriggeredDate?: string;
 };
 
-function readReminder(): StoredReminder {
+const STORAGE_KEY = 'bearmode:mission-reminder';
+
+const DEFAULT_ALARMS: KodiakAlarm[] = [
+  {
+    id: 'morning-mission',
+    title: 'Morning mission check',
+    time: '09:00',
+    enabled: false,
+    repeat: 'daily',
+    lastTriggeredDate: ''
+  },
+  {
+    id: 'focus-check',
+    title: 'Midday focus check',
+    time: '14:00',
+    enabled: false,
+    repeat: 'daily',
+    lastTriggeredDate: ''
+  },
+  {
+    id: 'bedtime-review',
+    title: 'Bedtime review',
+    time: '21:30',
+    enabled: false,
+    repeat: 'daily',
+    lastTriggeredDate: ''
+  }
+];
+
+function createAlarm(title: string, time: string, repeat: KodiakAlarm['repeat'] = 'daily', enabled = true): KodiakAlarm {
+  return {
+    id: crypto.randomUUID(),
+    title: title.trim() || 'Kodiak alarm',
+    time,
+    enabled,
+    repeat,
+    lastTriggeredDate: ''
+  };
+}
+
+function readAlarms(): KodiakAlarm[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_REMINDER;
-    return { ...DEFAULT_REMINDER, ...JSON.parse(raw) };
+    if (!raw) return DEFAULT_ALARMS;
+
+    const parsed = JSON.parse(raw) as KodiakAlarm[] | LegacyReminder;
+
+    if (Array.isArray(parsed)) {
+      return parsed.length
+        ? parsed.map((alarm) => ({ ...alarm, repeat: alarm.repeat ?? 'daily', lastTriggeredDate: alarm.lastTriggeredDate ?? '' }))
+        : DEFAULT_ALARMS;
+    }
+
+    return [
+      createAlarm(parsed.label || 'Mission reminder', parsed.time || '09:00', 'daily', parsed.enabled ?? false)
+    ].map((alarm) => ({ ...alarm, lastTriggeredDate: parsed.lastTriggeredDate || '' }));
   } catch {
-    return DEFAULT_REMINDER;
+    return DEFAULT_ALARMS;
   }
 }
 
-function saveReminder(reminder: StoredReminder) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(reminder));
+function saveAlarms(alarms: KodiakAlarm[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(alarms));
 }
 
 function localDateKey(date = new Date()) {
@@ -48,41 +100,46 @@ function localTimeValue(date = new Date()) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-function timeUntilLabel(time: string) {
-  if (!time) return 'Pick a time to arm Kodiak.';
-
-  const [hours, minutes] = time.split(':').map(Number);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 'Pick a valid time.';
-
-  const now = new Date();
-  const target = new Date();
-  target.setHours(hours, minutes, 0, 0);
-
-  if (target.getTime() <= now.getTime()) {
-    target.setDate(target.getDate() + 1);
-  }
-
-  const totalMinutes = Math.ceil((target.getTime() - now.getTime()) / 60_000);
-  const hrs = Math.floor(totalMinutes / 60);
-  const mins = totalMinutes % 60;
-
-  if (hrs <= 0) return `${mins} min until Kodiak roars.`;
-  if (mins === 0) return `${hrs} hr until Kodiak roars.`;
-  return `${hrs} hr ${mins} min until Kodiak roars.`;
-}
-
 function addMinutesToNow(minutes: number) {
   const next = new Date(Date.now() + minutes * 60_000);
   return localTimeValue(next);
 }
 
+function getNextAlarm(alarms: KodiakAlarm[], now = new Date()) {
+  const armed = alarms.filter((alarm) => alarm.enabled && alarm.time);
+  if (!armed.length) return null;
+
+  return armed
+    .map((alarm) => {
+      const [hours, minutes] = alarm.time.split(':').map(Number);
+      const target = new Date(now);
+      target.setHours(hours, minutes, 0, 0);
+      if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+      return { alarm, target };
+    })
+    .sort((a, b) => a.target.getTime() - b.target.getTime())[0];
+}
+
+function timeUntilLabel(target: Date) {
+  const totalMinutes = Math.max(0, Math.ceil((target.getTime() - Date.now()) / 60_000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours <= 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} hr`;
+  return `${hours} hr ${minutes} min`;
+}
+
 export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAlert }: MissionReminderProps) {
-  const [reminder, setReminder] = useState<StoredReminder>(readReminder);
+  const [alarms, setAlarms] = useState<KodiakAlarm[]>(readAlarms);
+  const [draftTitle, setDraftTitle] = useState(mission || 'Get back on mission');
+  const [draftTime, setDraftTime] = useState('09:00');
+  const [draftRepeat, setDraftRepeat] = useState<KodiakAlarm['repeat']>('daily');
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    saveReminder(reminder);
-  }, [reminder]);
+    saveAlarms(alarms);
+  }, [alarms]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 1_000);
@@ -90,89 +147,126 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
   }, []);
 
   useEffect(() => {
-    if (!reminder.enabled || !reminder.time) return;
-
     const currentDate = localDateKey(now);
     const currentTime = localTimeValue(now);
-    if (currentTime !== reminder.time || reminder.lastTriggeredDate === currentDate) return;
+    const triggered = alarms.find((alarm) => alarm.enabled && alarm.time === currentTime && alarm.lastTriggeredDate !== currentDate);
 
-    setReminder((current) => ({ ...current, lastTriggeredDate: currentDate }));
+    if (!triggered) return;
+
+    setAlarms((current) => current.map((alarm) => {
+      if (alarm.id !== triggered.id) return alarm;
+      return {
+        ...alarm,
+        enabled: alarm.repeat === 'once' ? false : alarm.enabled,
+        lastTriggeredDate: currentDate
+      };
+    }));
+
     onStartAlert();
-  }, [now, onStartAlert, reminder.enabled, reminder.lastTriggeredDate, reminder.time]);
+  }, [alarms, now, onStartAlert]);
 
-  const reminderLabel = useMemo(() => {
-    if (alertPlaying) return 'Kodiak is currently roaring. Stop or snooze the alarm.';
-    if (!reminder.enabled) return 'Kodiak is idle. Arm the alarm when you are ready.';
-    return timeUntilLabel(reminder.time);
-  }, [alertPlaying, reminder.enabled, reminder.time, now]);
+  const nextAlarm = useMemo(() => getNextAlarm(alarms, now), [alarms, now]);
+  const armedCount = alarms.filter((alarm) => alarm.enabled).length;
 
-  const missionText = reminder.label.trim() || mission;
+  const statusLine = useMemo(() => {
+    if (alertPlaying) return 'Kodiak is roaring. Stop it, snooze it, or get moving.';
+    if (!nextAlarm) return 'No alarms armed. Kodiak is waiting for a target.';
+    return `${nextAlarm.alarm.title} roars in ${timeUntilLabel(nextAlarm.target)}.`;
+  }, [alertPlaying, nextAlarm, now]);
 
-  const updateReminder = (changes: Partial<StoredReminder>) => {
-    setReminder((current) => ({ ...current, ...changes }));
+  const updateAlarm = (id: string, changes: Partial<KodiakAlarm>) => {
+    setAlarms((current) => current.map((alarm) => alarm.id === id ? { ...alarm, ...changes } : alarm));
   };
 
-  const setQuickReminder = (minutes: number) => {
-    updateReminder({
-      time: addMinutesToNow(minutes),
-      enabled: true,
-      lastTriggeredDate: ''
-    });
+  const removeAlarm = (id: string) => {
+    setAlarms((current) => current.filter((alarm) => alarm.id !== id));
+  };
+
+  const addAlarm = () => {
+    setAlarms((current) => [createAlarm(draftTitle, draftTime, draftRepeat), ...current]);
+    setDraftTitle(mission || 'Get back on mission');
+  };
+
+  const addQuickAlarm = (minutes: number, title = `Kodiak roar in ${minutes} min`) => {
+    setAlarms((current) => [createAlarm(title, addMinutesToNow(minutes), 'once'), ...current]);
   };
 
   const snooze = () => {
     onStopAlert();
-    setQuickReminder(5);
+    addQuickAlarm(5, 'Snoozed Kodiak comeback');
   };
 
   return (
-    <section className={`panel mission-reminder${alertPlaying ? ' is-alerting' : ''}`}>
+    <section className={`panel mission-reminder alarm-center${alertPlaying ? ' is-alerting' : ''}`}>
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Alarm system</p>
-          <h2>Mission Reminder</h2>
-          <p>{reminderLabel}</p>
+          <p className="eyebrow">Alarm Center</p>
+          <h2>Kodiak Alerts</h2>
+          <p>{statusLine}</p>
         </div>
-        <span className="badge">{alertPlaying ? 'Roaring' : reminder.enabled ? 'Armed' : 'Idle'}</span>
+        <span className="badge">{alertPlaying ? 'Roaring' : `${armedCount}/${alarms.length} armed`}</span>
       </div>
 
-      <label className="field">
-        Alert time
-        <input
-          type="time"
-          value={reminder.time}
-          onChange={(event) => updateReminder({ time: event.target.value, lastTriggeredDate: '' })}
-        />
-      </label>
+      <div className="alarm-composer">
+        <label className="field">
+          What Kodiak is yelling about
+          <input
+            value={draftTitle}
+            placeholder={mission || 'Get back on mission.'}
+            onChange={(event) => setDraftTitle(event.target.value)}
+          />
+        </label>
 
-      <label className="field">
-        What Kodiak is yelling about
-        <input
-          value={reminder.label}
-          placeholder={mission || 'Get back on mission.'}
-          onChange={(event) => updateReminder({ label: event.target.value })}
-        />
-      </label>
+        <label className="field compact-field">
+          Time
+          <input type="time" value={draftTime} onChange={(event) => setDraftTime(event.target.value)} />
+        </label>
+
+        <label className="field compact-field">
+          Repeat
+          <select value={draftRepeat} onChange={(event) => setDraftRepeat(event.target.value as KodiakAlarm['repeat'])}>
+            <option value="daily">Daily</option>
+            <option value="once">Once</option>
+          </select>
+        </label>
+
+        <button onClick={addAlarm}>Add Alarm</button>
+      </div>
 
       <div className="mission-reminder__preview" aria-live="polite">
-        <strong>Kodiak Alert:</strong>
-        <span>ROOOAR. {missionText || 'Get back on mission.'}</span>
+        <strong>Next roar:</strong>
+        <span>{nextAlarm ? `${nextAlarm.alarm.time} — ${nextAlarm.alarm.title}` : 'No armed alarms yet.'}</span>
       </div>
 
-      <div className="row wrap">
-        <button
-          className={reminder.enabled ? 'secondary' : undefined}
-          onClick={() => updateReminder({ enabled: !reminder.enabled, lastTriggeredDate: '' })}
-        >
-          {reminder.enabled ? 'Disarm Alarm' : 'Arm Alarm'}
-        </button>
-        <button className="secondary" onClick={() => setQuickReminder(15)}>+15 Min</button>
-        <button className="secondary" onClick={() => setQuickReminder(30)}>+30 Min</button>
+      <div className="row wrap quick-alarm-row">
+        <button className="secondary" onClick={() => addQuickAlarm(15)}>+15 Min</button>
+        <button className="secondary" onClick={() => addQuickAlarm(30)}>+30 Min</button>
+        <button className="secondary" onClick={() => addQuickAlarm(60)}>+60 Min</button>
         {alertPlaying && <button className="alert-button" onClick={snooze}>Snooze 5</button>}
       </div>
 
+      <div className="alarm-list" aria-label="Kodiak alarms">
+        {alarms.map((alarm) => (
+          <article key={alarm.id} className={`alarm-card${alarm.enabled ? ' is-armed' : ''}`}>
+            <div>
+              <strong>{alarm.title}</strong>
+              <span>{alarm.time} · {alarm.repeat === 'daily' ? 'daily' : 'once'}</span>
+            </div>
+            <div className="alarm-card__actions">
+              <button
+                className={alarm.enabled ? 'secondary' : undefined}
+                onClick={() => updateAlarm(alarm.id, { enabled: !alarm.enabled, lastTriggeredDate: '' })}
+              >
+                {alarm.enabled ? 'Disarm' : 'Arm'}
+              </button>
+              <button className="secondary" onClick={() => removeAlarm(alarm.id)}>Remove</button>
+            </div>
+          </article>
+        ))}
+      </div>
+
       <p className="mission-reminder__note">
-        Web alarm note: keep BearMode open for now. The mobile/PWA version will handle true background alarms later.
+        Web alarm note: keep BearMode open for now. Native mobile alarms come later when we wrap BearMode for phones.
       </p>
     </section>
   );
