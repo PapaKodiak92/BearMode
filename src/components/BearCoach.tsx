@@ -1,10 +1,12 @@
 type BearCoachProps = {
   message: string;
   onRoar: () => void;
-  onNotify: () => void;
+  onAlert: () => void;
+  onStopAlert: () => void;
+  alertPlaying: boolean;
 };
 
-export function BearCoach({ message, onRoar, onNotify }: BearCoachProps) {
+export function BearCoach({ message, onRoar, onAlert, onStopAlert, alertPlaying }: BearCoachProps) {
   return (
     <section className="bear-card">
       <img className="bear-avatar" src="/kodiak-coach.png" alt="Kodiak bear coach" />
@@ -13,7 +15,11 @@ export function BearCoach({ message, onRoar, onNotify }: BearCoachProps) {
         <h2>{message}</h2>
         <div className="row wrap">
           <button className="secondary" onClick={onRoar}>Roar</button>
-          <button className="secondary" onClick={onNotify}>Kodiak Alert</button>
+          {alertPlaying ? (
+            <button className="secondary" onClick={onStopAlert}>Stop Alert</button>
+          ) : (
+            <button className="secondary" onClick={onAlert}>Kodiak Alert</button>
+          )}
         </div>
       </div>
     </section>
