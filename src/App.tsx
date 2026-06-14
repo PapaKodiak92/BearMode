@@ -11,7 +11,7 @@ import { ProgressPanel } from './components/ProgressPanel';
 import { TodayBoard } from './components/TodayBoard';
 import { randomBearLine } from './data/bearLines';
 import { loadState, saveState } from './lib/storage';
-import type { BearModeProfile, BearModeState, CalendarItem, Habit, SideQuest, WinLog } from './types';
+import type { BearModeProfile, BearModeState, Habit, SideQuest, WinLog } from './types';
 import './styles.css';
 import './app-flow.css';
 
@@ -20,6 +20,7 @@ const ROAR_SOUND_URL = '/roar.mp3';
 const KODIAK_ALERT_SOUND_URL = '/kodiak-alert.mp3';
 const KODIAK_ALERT_DURATION_MS = 41_000;
 const MIN_VALID_ALERT_SECONDS = 0.2;
+const DEFAULT_ALERT_MESSAGE = 'Get back on mission.';
 
 type AppTab = 'dashboard' | 'mission' | 'focus' | 'alarms' | 'calendar' | 'progress' | 'setup';
 
@@ -214,19 +215,19 @@ export default function App() {
     void roar.play().catch(() => playFallbackRoar());
   }, [playFallbackRoar]);
 
-  const showKodiakNotification = useCallback(async () => {
+  const showKodiakNotification = useCallback(async (message = DEFAULT_ALERT_MESSAGE) => {
     if (!('Notification' in window)) return;
 
     const permission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
     if (permission === 'granted') {
       new Notification('BearMode Alert', {
-        body: 'ROOOAR. Kodiak says: Get back on mission.',
+        body: message,
         icon: '/kodiak-coach.png'
       });
     }
   }, []);
 
-  const startKodiakAlert = useCallback(() => {
+  const startKodiakAlert = useCallback((message = DEFAULT_ALERT_MESSAGE) => {
     stopKodiakAlert();
 
     const alertAudio = new Audio(KODIAK_ALERT_SOUND_URL);
@@ -234,7 +235,7 @@ export default function App() {
     alertAudio.loop = true;
     kodiakAlertAudioRef.current = alertAudio;
     setKodiakAlertPlaying(true);
-    setCoachMessage('ROOOAR. Get back on mission.');
+    setCoachMessage(message);
 
     let fallbackStarted = false;
 
@@ -278,7 +279,7 @@ export default function App() {
       stopKodiakAlert();
     }, KODIAK_ALERT_DURATION_MS);
 
-    void showKodiakNotification();
+    void showKodiakNotification(message);
   }, [playFallbackRoar, showKodiakNotification, stopKodiakAlert]);
 
   const completeOnboarding = useCallback((payload: OnboardingPayload) => {
@@ -322,9 +323,7 @@ export default function App() {
           <div>
             <p className="eyebrow">Daily command center</p>
             <h1>{state.profile.displayName ? `${state.profile.displayName}, choose the next win.` : 'One mission. One next move.'}</h1>
-            <p>
-              {state.profile.reason || 'Home stays clean. Mission first. Deeper tools live in the tabs.'}
-            </p>
+            <p>{state.profile.reason || 'Home stays clean. Mission first. Deeper tools live in the tabs.'}</p>
           </div>
 
           <div className="hero-side">
@@ -339,8 +338,8 @@ export default function App() {
                   <span />
                 </div>
                 <div>
-                  <strong>Kodiak is roaring</strong>
-                  <span>Alarm active — get back on mission or stop it.</span>
+                  <strong>Kodiak is live</strong>
+                  <span>{coachMessage}</span>
                 </div>
                 <button className="secondary alarm-stop" onClick={stopKodiakAlert}>Stop Alert</button>
               </div>
@@ -447,15 +446,6 @@ export default function App() {
             onStartAlert={startKodiakAlert}
             onStopAlert={stopKodiakAlert}
           />
-          <section className="panel grid-span-2 calm-panel">
-            <p className="eyebrow">Alarm Center</p>
-            <h2>Kodiak alerts live here now.</h2>
-            <p className="muted">Home stays clean. Alarms, reminders, and future repeating alerts will be managed from this tab.</p>
-            <div className="dashboard-actions">
-              <button onClick={startKodiakAlert}>{kodiakAlertPlaying ? 'Restart Alert' : 'Test Kodiak Alert'}</button>
-              <button className="secondary" onClick={stopKodiakAlert} disabled={!kodiakAlertPlaying}>Stop Alert</button>
-            </div>
-          </section>
         </section>
       )}
 
