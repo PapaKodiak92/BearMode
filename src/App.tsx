@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BearCoach } from './components/BearCoach';
 import { DriftReset } from './components/DriftReset';
 import { FocusTimer } from './components/FocusTimer';
+import { KodiakAvatar } from './components/KodiakAvatar';
 import { ProgressPanel } from './components/ProgressPanel';
 import { TodayBoard } from './components/TodayBoard';
 import { randomBearLine } from './data/bearLines';
@@ -149,11 +150,7 @@ export default function App() {
           </div>
 
           <div className="hero-side">
-            <img
-              className={`hero-bear${kodiakAlertPlaying ? ' roaring' : ''}`}
-              src="/kodiak-coach.png"
-              alt="Kodiak bear coach"
-            />
+            <KodiakAvatar variant="hero" active={kodiakAlertPlaying} />
 
             {kodiakAlertPlaying && (
               <div className="kodiak-alarm-panel" role="status" aria-live="assertive">
