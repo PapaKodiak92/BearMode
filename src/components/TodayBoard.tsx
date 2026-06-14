@@ -21,26 +21,34 @@ export function TodayBoard({
   onAddHabit,
   onHabitMode
 }: TodayBoardProps) {
+  const completedSideQuests = sideQuests.filter((quest) => quest.done).length;
+  const completedHabits = habits.filter((habit) => habit.mode !== 'none').length;
+
   return (
-    <section className="panel grid-span-2">
-      <div className="panel-header">
+    <section className="panel mission-board-card">
+      <div className="mission-board-header">
         <div>
-          <p className="eyebrow">Today</p>
-          <h2>Mission Board</h2>
+          <p className="eyebrow">Mission</p>
+          <h2>Today Board</h2>
         </div>
-        <span className="badge">BearMode Active</span>
+        <div className="mission-board-score" aria-label="Today progress">
+          <span>{completedSideQuests}/{sideQuests.length} quests</span>
+          <span>{completedHabits}/{habits.length} habits</span>
+        </div>
       </div>
 
-      <label className="field">
+      <label className="field compact-mission-field">
         Main Mission
         <textarea
+          className="mission-textarea"
+          rows={2}
           value={mainMission}
           onChange={(event) => onMissionChange(event.target.value)}
           placeholder="What is the one win that makes today count?"
         />
       </label>
 
-      <div className="split">
+      <div className="mission-columns">
         <QuestList
           title="Side Quests"
           placeholder="Add a side quest..."
@@ -49,18 +57,21 @@ export function TodayBoard({
           onToggle={onToggleSideQuest}
         />
 
-        <div className="mini-panel">
-          <h3>Habits</h3>
+        <div className="mini-panel mission-subpanel">
+          <div className="mission-subpanel-header">
+            <h3>Habits</h3>
+            <span>{completedHabits}/{habits.length}</span>
+          </div>
           <InlineAdd placeholder="Add a habit..." onAdd={onAddHabit} />
-          <div className="list">
+          <div className="list mission-list">
             {habits.map((habit) => (
-              <div key={habit.id} className="habit-row">
+              <div key={habit.id} className="habit-row compact-row">
                 <strong>{habit.title}</strong>
                 <select value={habit.mode} onChange={(event) => onHabitMode(habit.id, event.target.value as Habit['mode'])}>
                   <option value="none">Not yet</option>
-                  <option value="minimum">Minimum win</option>
-                  <option value="full">Full win</option>
-                  <option value="recovery">Recovery win</option>
+                  <option value="minimum">Minimum</option>
+                  <option value="full">Full</option>
+                  <option value="recovery">Recovery</option>
                 </select>
               </div>
             ))}
@@ -84,13 +95,18 @@ function QuestList({
   onAdd: (title: string) => void;
   onToggle: (id: string) => void;
 }) {
+  const completed = items.filter((item) => item.done).length;
+
   return (
-    <div className="mini-panel">
-      <h3>{title}</h3>
+    <div className="mini-panel mission-subpanel">
+      <div className="mission-subpanel-header">
+        <h3>{title}</h3>
+        <span>{completed}/{items.length}</span>
+      </div>
       <InlineAdd placeholder={placeholder} onAdd={onAdd} />
-      <div className="list">
+      <div className="list mission-list">
         {items.map((item) => (
-          <label key={item.id} className="check-row">
+          <label key={item.id} className="check-row compact-row">
             <input type="checkbox" checked={item.done} onChange={() => onToggle(item.id)} />
             <span className={item.done ? 'done' : ''}>{item.title}</span>
           </label>
@@ -109,7 +125,7 @@ function InlineAdd({ placeholder, onAdd }: { placeholder: string; onAdd: (title:
   }
 
   return (
-    <form className="inline-add" action={submit}>
+    <form className="inline-add compact-inline-add" action={submit}>
       <input name="title" placeholder={placeholder} />
       <button type="submit">Add</button>
     </form>
