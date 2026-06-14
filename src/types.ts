@@ -17,7 +17,24 @@ export type WinLog = {
   type: 'mission' | 'sideQuest' | 'habit' | 'driftReset' | 'focus';
 };
 
+export type BearModeProfile = {
+  displayName: string;
+  identity: string;
+  reason: string;
+  desiredChange: string;
+  coachStyle: 'calm' | 'firm' | 'unhinged';
+};
+
+export type CalendarItem = {
+  id: string;
+  title: string;
+  date: string;
+  type: 'mission' | 'focus' | 'habit' | 'review';
+};
+
 export type BearModeState = {
+  onboardingComplete: boolean;
+  profile: BearModeProfile;
   mainMission: string;
   sideQuests: SideQuest[];
   habits: Habit[];
@@ -25,4 +42,5 @@ export type BearModeState = {
   driftReason: string;
   resetAction: string;
   wins: WinLog[];
+  calendarItems: CalendarItem[];
 };
