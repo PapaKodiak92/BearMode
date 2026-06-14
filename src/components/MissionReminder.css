@@ -143,6 +143,44 @@
   margin: 0;
 }
 
+.smart-alert-preview {
+  margin-top: 0.9rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 179, 92, 0.25);
+  background: linear-gradient(135deg, rgba(255, 179, 92, 0.16), rgba(0, 0, 0, 0.16));
+}
+
+.smart-alert-preview span,
+.alarm-card__main em {
+  display: block;
+  color: #ffb35c;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.smart-alert-preview strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: #fff6e8;
+  font-size: clamp(1.35rem, 3vw, 2.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.smart-alert-preview.tone-unhinged {
+  border-color: rgba(255, 78, 78, 0.34);
+  background: linear-gradient(135deg, rgba(255, 78, 78, 0.2), rgba(255, 179, 92, 0.08), rgba(0, 0, 0, 0.18));
+}
+
+.smart-alert-preview.tone-calm {
+  border-color: rgba(255, 179, 92, 0.18);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 179, 92, 0.08));
+}
+
 .alarm-composer-actions {
   display: flex;
   flex-wrap: wrap;
@@ -162,6 +200,9 @@
 
 .alarm-next-card p {
   margin: 0;
+  color: #fff0df;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .quick-alarm-grid {
@@ -195,7 +236,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.8rem;
   align-items: start;
-  min-height: 9.5rem;
+  min-height: 10.5rem;
   padding: 0.95rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
@@ -228,10 +269,21 @@
   font-size: 0.85rem;
 }
 
+.alarm-card__main em {
+  margin-top: 0.7rem;
+  max-width: 20rem;
+  color: #f3d8b8;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-transform: none;
+}
+
 .alarm-card__actions {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   align-self: end;
 }
