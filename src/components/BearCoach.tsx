@@ -1,3 +1,5 @@
+import { KodiakAvatar } from './KodiakAvatar';
+
 type BearCoachProps = {
   message: string;
   onRoar: () => void;
@@ -9,11 +11,7 @@ type BearCoachProps = {
 export function BearCoach({ message, onRoar, onAlert, onStopAlert, alertPlaying }: BearCoachProps) {
   return (
     <section className={`bear-card${alertPlaying ? ' alarm-mode' : ''}`}>
-      <img
-        className={`bear-avatar${alertPlaying ? ' roaring' : ''}`}
-        src="/kodiak-coach.png"
-        alt="Kodiak bear coach"
-      />
+      <KodiakAvatar variant="coach" active={alertPlaying} />
       <div>
         <p className="eyebrow">
           Kodiak Coach
