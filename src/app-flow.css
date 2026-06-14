@@ -1,0 +1,201 @@
+.onboarding-shell {
+  min-height: calc(100vh - 2rem);
+  display: grid;
+  align-items: center;
+}
+
+.onboarding-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 2rem;
+  background: linear-gradient(135deg, rgba(255,179,92,0.14), rgba(15,18,25,0.92));
+  box-shadow: 0 28px 100px rgba(0,0,0,0.5);
+  padding: 1.5rem;
+}
+
+.onboarding-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0.3rem;
+  background: rgba(255,255,255,0.08);
+}
+
+.onboarding-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffb35c, #f6d08a);
+  transition: width 0.25s ease;
+}
+
+.onboarding-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #a99d91;
+  margin: 0.35rem 0 1.5rem;
+}
+
+.onboarding-topline strong {
+  color: #ffb35c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.9fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.onboarding-form {
+  display: grid;
+  align-content: start;
+}
+
+.onboarding-kodiak {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.onboarding-kodiak span {
+  color: #a99d91;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.habit-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.chip-button {
+  padding: 0.7rem 0.85rem;
+}
+
+.app-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.tab-button {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  text-align: left;
+  color: #d8ccbf;
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 1.2rem;
+  padding: 0.9rem 1rem;
+}
+
+.tab-button strong {
+  color: #f4efe7;
+}
+
+.tab-button span {
+  color: #8f8379;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.tab-button.active {
+  color: #120c08;
+  background: linear-gradient(135deg, #ffb35c, #f6d08a);
+  border-color: rgba(255,179,92,0.75);
+  box-shadow: 0 16px 42px rgba(255,179,92,0.16);
+}
+
+.tab-button.active strong,
+.tab-button.active span {
+  color: #120c08;
+}
+
+.calendar-panel {
+  min-height: 26rem;
+}
+
+.calendar-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.75fr) minmax(0, 0.75fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+
+.calendar-form .field {
+  margin: 0;
+}
+
+.calendar-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.calendar-item,
+.empty-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 1.1rem;
+  padding: 0.85rem;
+  background: rgba(0,0,0,0.18);
+}
+
+.calendar-item strong,
+.calendar-item span {
+  display: block;
+}
+
+.calendar-item span,
+.empty-card {
+  color: #a99d91;
+}
+
+.proof-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .onboarding-grid,
+  .app-tabs,
+  .calendar-form,
+  .proof-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-shell {
+    align-items: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .onboarding-card {
+    padding: 1.1rem;
+    border-radius: 1.4rem;
+  }
+
+  .onboarding-topline,
+  .onboarding-actions,
+  .calendar-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
