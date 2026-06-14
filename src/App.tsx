@@ -38,6 +38,7 @@ export default function App() {
   }, [state]);
 
   const completedSideQuests = useMemo(() => state.sideQuests.filter((quest) => quest.done).length, [state.sideQuests]);
+  const completedHabits = useMemo(() => state.habits.filter((habit) => habit.mode !== 'none').length, [state.habits]);
 
   const addWin = useCallback((title: string, type: WinLog['type']) => {
     setState((current) => ({
@@ -73,7 +74,7 @@ export default function App() {
     if (permission === 'granted') {
       new Notification('BearMode Alert', {
         body: 'ROOOAR. Kodiak says: Get back on mission.',
-        icon: '/bearmode-icon.svg'
+        icon: '/kodiak-coach.png'
       });
     }
   }, [playRoar]);
@@ -93,9 +94,20 @@ export default function App() {
               Pick today's mission, run lock-in sessions, recover when you drift, and build proof one win at a time.
             </p>
           </div>
-          <div className="hero-stats">
-            <div><strong>{completedSideQuests}/{state.sideQuests.length}</strong><span>Side quests</span></div>
-            <div><strong>{state.habits.filter((habit) => habit.mode !== 'none').length}/{state.habits.length}</strong><span>Habits hit</span></div>
+
+          <div className="hero-side">
+            <img className="hero-bear" src="/kodiak-coach.png" alt="Kodiak bear coach" />
+
+            <div className="hero-stats">
+              <div className="stat-card">
+                <strong>{completedSideQuests}/{state.sideQuests.length}</strong>
+                <span>Side quests</span>
+              </div>
+              <div className="stat-card">
+                <strong>{completedHabits}/{state.habits.length}</strong>
+                <span>Habits hit</span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
