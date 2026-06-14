@@ -21,7 +21,7 @@ const KODIAK_ALERT_SOUND_URL = '/kodiak-alert.mp3';
 const KODIAK_ALERT_DURATION_MS = 41_000;
 const MIN_VALID_ALERT_SECONDS = 0.2;
 
-type AppTab = 'dashboard' | 'focus' | 'alarms' | 'calendar' | 'progress' | 'setup';
+type AppTab = 'dashboard' | 'mission' | 'focus' | 'alarms' | 'calendar' | 'progress' | 'setup';
 
 const defaultProfile: BearModeProfile = {
   displayName: '',
@@ -55,12 +55,13 @@ const fallbackState: BearModeState = {
 };
 
 const tabs: { id: AppTab; label: string; description: string }[] = [
-  { id: 'dashboard', label: 'Home', description: 'Mission only' },
-  { id: 'focus', label: 'Focus', description: 'Timer + drift reset' },
+  { id: 'dashboard', label: 'Home', description: 'Today at a glance' },
+  { id: 'mission', label: 'Mission', description: 'Tasks + habits' },
+  { id: 'focus', label: 'Focus', description: 'Timer + reset' },
   { id: 'alarms', label: 'Alarms', description: 'Kodiak alerts' },
   { id: 'calendar', label: 'Calendar', description: 'Plan blocks' },
   { id: 'progress', label: 'Progress', description: 'Wins proof' },
-  { id: 'setup', label: 'Setup', description: 'Profile + app shell' }
+  { id: 'setup', label: 'Setup', description: 'Profile + app' }
 ];
 
 function today() {
@@ -256,7 +257,7 @@ export default function App() {
             <p className="eyebrow">Daily command center</p>
             <h1>{state.profile.displayName ? `${state.profile.displayName}, choose the next win.` : 'One mission. One next move.'}</h1>
             <p>
-              {state.profile.reason || 'Keep the home screen clean. Mission first. Details live in the tabs below.'}
+              {state.profile.reason || 'Home stays clean. Mission first. Deeper tools live in the tabs.'}
             </p>
           </div>
 
@@ -278,17 +279,6 @@ export default function App() {
                 <button className="secondary alarm-stop" onClick={stopKodiakAlert}>Stop Alert</button>
               </div>
             )}
-
-            <div className="hero-stats">
-              <div className="stat-card">
-                <strong>{completedSideQuests}/{state.sideQuests.length}</strong>
-                <span>Side quests</span>
-              </div>
-              <div className="stat-card">
-                <strong>{completedHabits}/{state.habits.length}</strong>
-                <span>Habits hit</span>
-              </div>
-            </div>
           </div>
         </div>
       </header>
@@ -317,7 +307,22 @@ export default function App() {
       </div>
 
       {activeTab === 'dashboard' && (
-        <section className="dashboard-grid dashboard-home-grid">
+        <HomeDashboard
+          profile={state.profile}
+          mainMission={state.mainMission}
+          completedSideQuests={completedSideQuests}
+          completedHabits={completedHabits}
+          totalSideQuests={state.sideQuests.length}
+          totalHabits={state.habits.length}
+          wins={state.wins.length}
+          onGoMission={() => setActiveTab('mission')}
+          onGoFocus={() => setActiveTab('focus')}
+          onGoAlarms={() => setActiveTab('alarms')}
+        />
+      )}
+
+      {activeTab === 'mission' && (
+        <section className="mission-tab-shell">
           <TodayBoard
             mainMission={state.mainMission}
             sideQuests={state.sideQuests}
@@ -338,19 +343,6 @@ export default function App() {
               ...current,
               habits: current.habits.map((habit): Habit => habit.id === id ? { ...habit, mode } : habit)
             }))}
-          />
-
-          <DashboardQuickPanel
-            profile={state.profile}
-            wins={state.wins.length}
-            calendarCount={state.calendarItems.length}
-            completedSideQuests={completedSideQuests}
-            completedHabits={completedHabits}
-            totalSideQuests={state.sideQuests.length}
-            totalHabits={state.habits.length}
-            onGoFocus={() => setActiveTab('focus')}
-            onGoAlarms={() => setActiveTab('alarms')}
-            onGoCalendar={() => setActiveTab('calendar')}
           />
         </section>
       )}
@@ -390,7 +382,7 @@ export default function App() {
           <section className="panel grid-span-2 calm-panel">
             <p className="eyebrow">Alarm Center</p>
             <h2>Kodiak alerts live here now.</h2>
-            <p className="muted">Dashboard stays clean. Alarms, reminders, and future repeating alerts will be managed from this tab.</p>
+            <p className="muted">Home stays clean. Alarms, reminders, and future repeating alerts will be managed from this tab.</p>
             <div className="dashboard-actions">
               <button onClick={startKodiakAlert}>{kodiakAlertPlaying ? 'Restart Alert' : 'Test Kodiak Alert'}</button>
               <button className="secondary" onClick={stopKodiakAlert} disabled={!kodiakAlertPlaying}>Stop Alert</button>
@@ -457,61 +449,62 @@ export default function App() {
   );
 }
 
-function DashboardQuickPanel({
+function HomeDashboard({
   profile,
-  wins,
-  calendarCount,
+  mainMission,
   completedSideQuests,
   completedHabits,
   totalSideQuests,
   totalHabits,
+  wins,
+  onGoMission,
   onGoFocus,
-  onGoAlarms,
-  onGoCalendar
+  onGoAlarms
 }: {
   profile: BearModeProfile;
-  wins: number;
-  calendarCount: number;
+  mainMission: string;
   completedSideQuests: number;
   completedHabits: number;
   totalSideQuests: number;
   totalHabits: number;
+  wins: number;
+  onGoMission: () => void;
   onGoFocus: () => void;
   onGoAlarms: () => void;
-  onGoCalendar: () => void;
 }) {
   return (
-    <section className="panel quick-panel">
-      <p className="eyebrow">Command</p>
-      <h2>Keep it simple.</h2>
-      <p className="muted">
-        {profile.identity || 'The dashboard is for today only. Everything else has its own tab.'}
-      </p>
+    <section className="home-dashboard">
+      <section className="panel home-primary-card">
+        <p className="eyebrow">Home</p>
+        <h2>Today is simple.</h2>
+        <div className="home-mission-box">
+          <span>Main mission</span>
+          <strong>{mainMission || 'Choose one mission for today.'}</strong>
+        </div>
+        <p className="muted">
+          {profile.desiredChange || 'Do not manage the whole life from this screen. Pick the mission, enter BearMode, and move.'}
+        </p>
+        <div className="home-action-row">
+          <button onClick={onGoFocus}>Enter BearMode</button>
+          <button className="secondary" onClick={onGoMission}>Edit Mission</button>
+          <button className="secondary" onClick={onGoAlarms}>Set Alarm</button>
+        </div>
+      </section>
 
-      <div className="quick-stat-stack">
-        <div>
+      <section className="home-mini-row" aria-label="Today summary">
+        <div className="mini-panel home-mini-card">
           <strong>{completedSideQuests}/{totalSideQuests}</strong>
-          <span>side quests</span>
+          <span>Side quests</span>
         </div>
-        <div>
+        <div className="mini-panel home-mini-card">
           <strong>{completedHabits}/{totalHabits}</strong>
-          <span>habits</span>
+          <span>Habits hit</span>
         </div>
-        <div>
+        <div className="mini-panel home-mini-card">
           <strong>{wins}</strong>
-          <span>wins</span>
+          <span>Wins stacked</span>
         </div>
-        <div>
-          <strong>{calendarCount}</strong>
-          <span>calendar blocks</span>
-        </div>
-      </div>
-
-      <div className="dashboard-actions compact-actions">
-        <button onClick={onGoFocus}>Start Focus</button>
-        <button className="secondary" onClick={onGoAlarms}>Set Alarm</button>
-        <button className="secondary" onClick={onGoCalendar}>Plan Day</button>
-      </div>
+      </section>
     </section>
   );
 }
