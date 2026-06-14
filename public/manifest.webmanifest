@@ -1,0 +1,42 @@
+{
+  "name": "BearMode - Daily Mission Coach",
+  "short_name": "BearMode",
+  "description": "A no-BS bear coach for daily missions, focus blocks, drift resets, and roaring reminders.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b10",
+  "theme_color": "#ffb35c",
+  "categories": ["productivity", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/kodiak-coach.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/kodiak-coach.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mission Reminder",
+      "short_name": "Alarm",
+      "description": "Open BearMode to arm Kodiak's next mission reminder.",
+      "url": "/?shortcut=reminder",
+      "icons": [{ "src": "/kodiak-coach.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Lock-In Session",
+      "short_name": "Focus",
+      "description": "Open BearMode and start a lock-in session.",
+      "url": "/?shortcut=focus",
+      "icons": [{ "src": "/kodiak-coach.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
