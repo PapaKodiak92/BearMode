@@ -85,6 +85,31 @@
   padding: 0.7rem 0.85rem;
 }
 
+.compact-hero .hero-content {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  padding: 1.35rem 1.5rem;
+}
+
+.compact-hero h1 {
+  max-width: 680px;
+  font-size: clamp(2.35rem, 4.4vw, 4.2rem);
+}
+
+.compact-hero p {
+  max-width: 720px;
+  margin-bottom: 0;
+}
+
+.compact-hero .kodiak-avatar--hero {
+  --kodiak-size: 9.5rem;
+  --kodiak-radius: 2.25rem;
+}
+
+.compact-hero .hero-stats {
+  display: none;
+}
+
 .app-tabs {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -237,6 +262,14 @@
   .calendar-form,
   .proof-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compact-hero .hero-content {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-hero .hero-side {
+    justify-items: start;
   }
 
   .quick-panel {
