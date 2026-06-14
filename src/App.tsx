@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BearCoach } from './components/BearCoach';
 import { DriftReset } from './components/DriftReset';
 import { FocusTimer } from './components/FocusTimer';
@@ -10,6 +10,9 @@ import type { BearModeState, Habit, SideQuest, WinLog } from './types';
 import './styles.css';
 
 const STORAGE_KEY = 'bearmode:mvp-state';
+const ROAR_SOUND_URL = '/roar.mp3';
+const KODIAK_ALERT_SOUND_URL = '/kodiak-alert.mp3';
+const KODIAK_ALERT_DURATION_MS = 41_000;
 
 const fallbackState: BearModeState = {
   mainMission: 'Define the BearMode MVP and create the first repo.',
@@ -32,10 +35,32 @@ const fallbackState: BearModeState = {
 export default function App() {
   const [state, setState] = useState<BearModeState>(() => loadState(STORAGE_KEY, fallbackState));
   const [coachMessage, setCoachMessage] = useState(randomBearLine('morning'));
+  const [kodiakAlertPlaying, setKodiakAlertPlaying] = useState(false);
+  const kodiakAlertAudioRef = useRef<HTMLAudioElement | null>(null);
+  const kodiakAlertTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     saveState(STORAGE_KEY, state);
   }, [state]);
+
+  const stopKodiakAlert = useCallback(() => {
+    if (kodiakAlertTimeoutRef.current !== null) {
+      window.clearTimeout(kodiakAlertTimeoutRef.current);
+      kodiakAlertTimeoutRef.current = null;
+    }
+
+    if (kodiakAlertAudioRef.current) {
+      kodiakAlertAudioRef.current.pause();
+      kodiakAlertAudioRef.current.currentTime = 0;
+      kodiakAlertAudioRef.current = null;
+    }
+
+    setKodiakAlertPlaying(false);
+  }, []);
+
+  useEffect(() => {
+    return () => stopKodiakAlert();
+  }, [stopKodiakAlert]);
 
   const completedSideQuests = useMemo(() => state.sideQuests.filter((quest) => quest.done).length, [state.sideQuests]);
   const completedHabits = useMemo(() => state.habits.filter((habit) => habit.mode !== 'none').length, [state.habits]);
@@ -51,7 +76,7 @@ export default function App() {
     setCoachMessage(randomBearLine('win'));
   }, []);
 
-  const playRoar = useCallback(() => {
+  const playFallbackRoar = useCallback(() => {
     const audioContext = new AudioContext();
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
@@ -67,9 +92,15 @@ export default function App() {
     oscillator.stop(audioContext.currentTime + 0.8);
   }, []);
 
-  const testKodiakAlert = useCallback(async () => {
-    playRoar();
+  const playRoar = useCallback(() => {
+    const roar = new Audio(ROAR_SOUND_URL);
+    roar.volume = 0.9;
+    void roar.play().catch(() => playFallbackRoar());
+  }, [playFallbackRoar]);
+
+  const showKodiakNotification = useCallback(async () => {
     if (!('Notification' in window)) return;
+
     const permission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
     if (permission === 'granted') {
       new Notification('BearMode Alert', {
@@ -77,7 +108,28 @@ export default function App() {
         icon: '/kodiak-coach.png'
       });
     }
-  }, [playRoar]);
+  }, []);
+
+  const startKodiakAlert = useCallback(() => {
+    stopKodiakAlert();
+
+    const alertAudio = new Audio(KODIAK_ALERT_SOUND_URL);
+    alertAudio.volume = 0.85;
+    alertAudio.loop = true;
+    kodiakAlertAudioRef.current = alertAudio;
+    setKodiakAlertPlaying(true);
+
+    void alertAudio.play().catch(() => {
+      stopKodiakAlert();
+      playRoar();
+    });
+
+    kodiakAlertTimeoutRef.current = window.setTimeout(() => {
+      stopKodiakAlert();
+    }, KODIAK_ALERT_DURATION_MS);
+
+    void showKodiakNotification();
+  }, [playRoar, showKodiakNotification, stopKodiakAlert]);
 
   return (
     <main className="app-shell">
@@ -112,7 +164,13 @@ export default function App() {
         </div>
       </header>
 
-      <BearCoach message={coachMessage} onRoar={playRoar} onNotify={testKodiakAlert} />
+      <BearCoach
+        message={coachMessage}
+        onRoar={playRoar}
+        onAlert={startKodiakAlert}
+        onStopAlert={stopKodiakAlert}
+        alertPlaying={kodiakAlertPlaying}
+      />
 
       <section className="dashboard-grid">
         <TodayBoard
