@@ -165,8 +165,9 @@ export function OnboardingFlow({ onComplete, onRoar, onAlert, onStopAlert, alert
                 <select value={coachStyle} onChange={(event) => setCoachStyle(event.target.value as BearModeProfile['coachStyle'])}>
                   <option value="calm">Calm Kodiak</option>
                   <option value="firm">Firm Kodiak</option>
-                  <option value="unhinged">Unhinged Kodiak</option>
+                  <option value="unhinged">Unhinged Kodiak — cusses and talks shit</option>
                 </select>
+                <span className="field-hint">Unhinged mode roasts behavior, not the person. It is for people who want the loud no-BS version.</span>
               </label>
               <div className="habit-chip-grid" aria-label="Starter habits">
                 {habitOptions.map((habit) => (
