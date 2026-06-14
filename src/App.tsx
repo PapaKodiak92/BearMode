@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BearCoach } from './components/BearCoach';
+import { CalendarPanel } from './components/CalendarPanel';
 import { DriftReset } from './components/DriftReset';
 import { FocusTimer } from './components/FocusTimer';
 import { InstallBearMode } from './components/InstallBearMode';
 import { KodiakAvatar } from './components/KodiakAvatar';
 import { MissionReminder } from './components/MissionReminder';
+import { OnboardingFlow, type OnboardingPayload } from './components/OnboardingFlow';
 import { ProgressPanel } from './components/ProgressPanel';
 import { TodayBoard } from './components/TodayBoard';
 import { randomBearLine } from './data/bearLines';
 import { loadState, saveState } from './lib/storage';
-import type { BearModeState, Habit, SideQuest, WinLog } from './types';
+import type { BearModeProfile, BearModeState, CalendarItem, Habit, SideQuest, WinLog } from './types';
 import './styles.css';
+import './app-flow.css';
 
 const STORAGE_KEY = 'bearmode:mvp-state';
 const ROAR_SOUND_URL = '/roar.mp3';
@@ -18,7 +21,19 @@ const KODIAK_ALERT_SOUND_URL = '/kodiak-alert.mp3';
 const KODIAK_ALERT_DURATION_MS = 41_000;
 const MIN_VALID_ALERT_SECONDS = 0.2;
 
+type AppTab = 'dashboard' | 'setup' | 'calendar' | 'progress';
+
+const defaultProfile: BearModeProfile = {
+  displayName: '',
+  identity: '',
+  reason: '',
+  desiredChange: '',
+  coachStyle: 'firm'
+};
+
 const fallbackState: BearModeState = {
+  onboardingComplete: false,
+  profile: defaultProfile,
   mainMission: 'Define the BearMode MVP and create the first repo.',
   sideQuests: [
     { id: crypto.randomUUID(), title: 'Sketch Today screen', done: false },
@@ -33,13 +48,41 @@ const fallbackState: BearModeState = {
   focusMinutes: 25,
   driftReason: '',
   resetAction: '',
-  wins: []
+  wins: [],
+  calendarItems: [
+    { id: crypto.randomUUID(), title: 'Morning mission check', date: today(), type: 'mission' }
+  ]
 };
 
+const tabs: { id: AppTab; label: string; description: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', description: 'Today, focus, drift reset' },
+  { id: 'setup', label: 'Setup', description: 'Profile, install, coach style' },
+  { id: 'calendar', label: 'Calendar', description: 'Plan blocks and missions' },
+  { id: 'progress', label: 'Progress', description: 'Wins and streak proof' }
+];
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeState(stored: Partial<BearModeState>): BearModeState {
+  return {
+    ...fallbackState,
+    ...stored,
+    onboardingComplete: stored.onboardingComplete ?? false,
+    profile: { ...defaultProfile, ...stored.profile },
+    sideQuests: stored.sideQuests?.length ? stored.sideQuests : fallbackState.sideQuests,
+    habits: stored.habits?.length ? stored.habits : fallbackState.habits,
+    wins: stored.wins ?? [],
+    calendarItems: stored.calendarItems?.length ? stored.calendarItems : fallbackState.calendarItems
+  };
+}
+
 export default function App() {
-  const [state, setState] = useState<BearModeState>(() => loadState(STORAGE_KEY, fallbackState));
+  const [state, setState] = useState<BearModeState>(() => normalizeState(loadState<Partial<BearModeState>>(STORAGE_KEY, fallbackState)));
   const [coachMessage, setCoachMessage] = useState(randomBearLine('morning'));
   const [kodiakAlertPlaying, setKodiakAlertPlaying] = useState(false);
+  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const kodiakAlertAudioRef = useRef<HTMLAudioElement | null>(null);
   const kodiakAlertTimeoutRef = useRef<number | null>(null);
 
@@ -169,19 +212,49 @@ export default function App() {
     void showKodiakNotification();
   }, [playFallbackRoar, showKodiakNotification, stopKodiakAlert]);
 
+  const completeOnboarding = useCallback((payload: OnboardingPayload) => {
+    setState((current) => ({
+      ...current,
+      onboardingComplete: true,
+      profile: payload.profile,
+      mainMission: payload.mainMission,
+      habits: payload.habits.map((title) => ({ id: crypto.randomUUID(), title, mode: 'none' })),
+      calendarItems: [
+        { id: crypto.randomUUID(), title: 'Morning mission check', date: today(), type: 'mission' },
+        { id: crypto.randomUUID(), title: payload.mainMission, date: today(), type: 'mission' }
+      ]
+    }));
+    setCoachMessage(`Welcome to BearMode${payload.profile.displayName ? `, ${payload.profile.displayName}` : ''}. First mission is live.`);
+    setActiveTab('dashboard');
+  }, []);
+
+  if (!state.onboardingComplete) {
+    return (
+      <main className={`app-shell${kodiakAlertPlaying ? ' alert-active' : ''}`}>
+        <OnboardingFlow
+          onComplete={completeOnboarding}
+          onRoar={playRoar}
+          onAlert={startKodiakAlert}
+          onStopAlert={stopKodiakAlert}
+          alertPlaying={kodiakAlertPlaying}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className={`app-shell${kodiakAlertPlaying ? ' alert-active' : ''}`}>
       <header className="hero">
         <nav>
           <strong>BearMode</strong>
-          <span>Enter BearMode. Stack wins.</span>
+          <span>{state.profile.displayName ? `Welcome back, ${state.profile.displayName}.` : 'Enter BearMode. Stack wins.'}</span>
         </nav>
         <div className="hero-content">
           <div>
             <p className="eyebrow">Daily discipline app</p>
-            <h1>Your no-BS bear coach for real life.</h1>
+            <h1>{state.profile.displayName ? `${state.profile.displayName}, enter BearMode.` : 'Your no-BS bear coach for real life.'}</h1>
             <p>
-              Pick today's mission, run lock-in sessions, recover when you drift, and build proof one win at a time.
+              {state.profile.reason || 'Pick today\'s mission, run lock-in sessions, recover when you drift, and build proof one win at a time.'}
             </p>
           </div>
 
@@ -218,8 +291,6 @@ export default function App() {
         </div>
       </header>
 
-      <InstallBearMode />
-
       <BearCoach
         message={coachMessage}
         onRoar={playRoar}
@@ -228,58 +299,187 @@ export default function App() {
         alertPlaying={kodiakAlertPlaying}
       />
 
-      <section className="dashboard-grid">
-        <TodayBoard
-          mainMission={state.mainMission}
-          sideQuests={state.sideQuests}
-          habits={state.habits}
-          onMissionChange={(mainMission) => setState((current) => ({ ...current, mainMission }))}
-          onAddSideQuest={(title) => setState((current) => ({ ...current, sideQuests: [...current.sideQuests, { id: crypto.randomUUID(), title, done: false }] }))}
-          onToggleSideQuest={(id) => setState((current) => ({
-            ...current,
-            sideQuests: current.sideQuests.map((quest): SideQuest => {
-              if (quest.id !== id) return quest;
-              const updated = { ...quest, done: !quest.done };
-              if (updated.done) addWin(updated.title, 'sideQuest');
-              return updated;
-            })
-          }))}
-          onAddHabit={(title) => setState((current) => ({ ...current, habits: [...current.habits, { id: crypto.randomUUID(), title, mode: 'none' }] }))}
-          onHabitMode={(id, mode) => setState((current) => ({
-            ...current,
-            habits: current.habits.map((habit): Habit => habit.id === id ? { ...habit, mode } : habit)
-          }))}
-        />
+      <div className="app-tabs" role="tablist" aria-label="BearMode sections">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={activeTab === tab.id ? 'tab-button active' : 'tab-button'}
+            onClick={() => setActiveTab(tab.id)}
+            aria-selected={activeTab === tab.id}
+            role="tab"
+          >
+            <strong>{tab.label}</strong>
+            <span>{tab.description}</span>
+          </button>
+        ))}
+      </div>
 
-        <FocusTimer
-          minutes={state.focusMinutes}
-          onMinutesChange={(focusMinutes) => setState((current) => ({ ...current, focusMinutes }))}
-          onComplete={() => {
-            playRoar();
-            addWin(`${state.focusMinutes}-minute focus block`, 'focus');
-          }}
-        />
+      {activeTab === 'dashboard' && (
+        <section className="dashboard-grid">
+          <TodayBoard
+            mainMission={state.mainMission}
+            sideQuests={state.sideQuests}
+            habits={state.habits}
+            onMissionChange={(mainMission) => setState((current) => ({ ...current, mainMission }))}
+            onAddSideQuest={(title) => setState((current) => ({ ...current, sideQuests: [...current.sideQuests, { id: crypto.randomUUID(), title, done: false }] }))}
+            onToggleSideQuest={(id) => setState((current) => ({
+              ...current,
+              sideQuests: current.sideQuests.map((quest): SideQuest => {
+                if (quest.id !== id) return quest;
+                const updated = { ...quest, done: !quest.done };
+                if (updated.done) addWin(updated.title, 'sideQuest');
+                return updated;
+              })
+            }))}
+            onAddHabit={(title) => setState((current) => ({ ...current, habits: [...current.habits, { id: crypto.randomUUID(), title, mode: 'none' }] }))}
+            onHabitMode={(id, mode) => setState((current) => ({
+              ...current,
+              habits: current.habits.map((habit): Habit => habit.id === id ? { ...habit, mode } : habit)
+            }))}
+          />
 
-        <MissionReminder
-          mission={state.mainMission}
-          alertPlaying={kodiakAlertPlaying}
-          onStartAlert={startKodiakAlert}
-          onStopAlert={stopKodiakAlert}
-        />
+          <FocusTimer
+            minutes={state.focusMinutes}
+            onMinutesChange={(focusMinutes) => setState((current) => ({ ...current, focusMinutes }))}
+            onComplete={() => {
+              playRoar();
+              addWin(`${state.focusMinutes}-minute focus block`, 'focus');
+            }}
+          />
 
-        <DriftReset
-          driftReason={state.driftReason}
-          resetAction={state.resetAction}
-          onReasonChange={(driftReason) => setState((current) => ({ ...current, driftReason }))}
-          onActionChange={(resetAction) => setState((current) => ({ ...current, resetAction }))}
-          onComplete={() => {
-            setCoachMessage(randomBearLine('drift'));
-            addWin(state.resetAction || 'Started a 5-minute comeback', 'driftReset');
-          }}
-        />
+          <MissionReminder
+            mission={state.mainMission}
+            alertPlaying={kodiakAlertPlaying}
+            onStartAlert={startKodiakAlert}
+            onStopAlert={stopKodiakAlert}
+          />
 
-        <ProgressPanel wins={state.wins} />
-      </section>
+          <DriftReset
+            driftReason={state.driftReason}
+            resetAction={state.resetAction}
+            onReasonChange={(driftReason) => setState((current) => ({ ...current, driftReason }))}
+            onActionChange={(resetAction) => setState((current) => ({ ...current, resetAction }))}
+            onComplete={() => {
+              setCoachMessage(randomBearLine('drift'));
+              addWin(state.resetAction || 'Started a 5-minute comeback', 'driftReset');
+            }}
+          />
+
+          <ProgressPanel wins={state.wins} />
+        </section>
+      )}
+
+      {activeTab === 'setup' && (
+        <section className="dashboard-grid">
+          <ProfileSetupPanel
+            profile={state.profile}
+            onProfileChange={(profile) => setState((current) => ({ ...current, profile }))}
+            onResetOnboarding={() => setState((current) => ({ ...current, onboardingComplete: false }))}
+          />
+          <InstallBearMode />
+        </section>
+      )}
+
+      {activeTab === 'calendar' && (
+        <section className="dashboard-grid">
+          <CalendarPanel
+            items={state.calendarItems}
+            onAdd={(item) => setState((current) => ({
+              ...current,
+              calendarItems: [...current.calendarItems, { ...item, id: crypto.randomUUID() }]
+            }))}
+            onRemove={(id) => setState((current) => ({
+              ...current,
+              calendarItems: current.calendarItems.filter((item) => item.id !== id)
+            }))}
+          />
+          <MissionReminder
+            mission={state.mainMission}
+            alertPlaying={kodiakAlertPlaying}
+            onStartAlert={startKodiakAlert}
+            onStopAlert={stopKodiakAlert}
+          />
+        </section>
+      )}
+
+      {activeTab === 'progress' && (
+        <section className="dashboard-grid">
+          <ProgressPanel wins={state.wins} />
+          <section className="panel grid-span-2">
+            <p className="eyebrow">Proof</p>
+            <h2>BearMode Stats</h2>
+            <div className="stat-grid proof-grid">
+              <div>
+                <strong>{state.wins.length}</strong>
+                <span>Total wins logged</span>
+              </div>
+              <div>
+                <strong>{completedSideQuests}</strong>
+                <span>Side quests done today</span>
+              </div>
+              <div>
+                <strong>{completedHabits}</strong>
+                <span>Habits hit today</span>
+              </div>
+              <div>
+                <strong>{state.calendarItems.length}</strong>
+                <span>Calendar blocks</span>
+              </div>
+            </div>
+          </section>
+        </section>
+      )}
     </main>
+  );
+}
+
+function ProfileSetupPanel({
+  profile,
+  onProfileChange,
+  onResetOnboarding
+}: {
+  profile: BearModeProfile;
+  onProfileChange: (profile: BearModeProfile) => void;
+  onResetOnboarding: () => void;
+}) {
+  return (
+    <section className="panel grid-span-2">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Setup</p>
+          <h2>Identity & Coach Rules</h2>
+          <p className="muted">This is where BearMode learns who you are and why the mission matters.</p>
+        </div>
+        <button className="secondary" onClick={onResetOnboarding}>Replay intro</button>
+      </div>
+
+      <div className="split">
+        <label className="field">
+          Name
+          <input value={profile.displayName} onChange={(event) => onProfileChange({ ...profile, displayName: event.target.value })} />
+        </label>
+        <label className="field">
+          Coach style
+          <select value={profile.coachStyle} onChange={(event) => onProfileChange({ ...profile, coachStyle: event.target.value as BearModeProfile['coachStyle'] })}>
+            <option value="calm">Calm Kodiak</option>
+            <option value="firm">Firm Kodiak</option>
+            <option value="unhinged">Unhinged Kodiak</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="field">
+        Who are you becoming?
+        <textarea value={profile.identity} onChange={(event) => onProfileChange({ ...profile, identity: event.target.value })} />
+      </label>
+      <label className="field">
+        Why are you here?
+        <textarea value={profile.reason} onChange={(event) => onProfileChange({ ...profile, reason: event.target.value })} />
+      </label>
+      <label className="field">
+        What needs to change first?
+        <textarea value={profile.desiredChange} onChange={(event) => onProfileChange({ ...profile, desiredChange: event.target.value })} />
+      </label>
+    </section>
   );
 }
