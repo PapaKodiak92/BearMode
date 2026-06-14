@@ -16,6 +16,10 @@ button.secondary { color: #f4efe7; background: rgba(255,255,255,0.08); border: 1
 button.selected { color: #120c08; background: #f6d08a; }
 button.alert-button, .alarm-stop { color: #120c08; background: #ffb35c; border-color: rgba(255,179,92,0.65); box-shadow: 0 0 26px rgba(255,179,92,0.32); }
 input, textarea, select { width: 100%; border: 1px solid rgba(255,255,255,0.12); border-radius: 1rem; color: #f4efe7; background: rgba(255,255,255,0.06); padding: 0.85rem 1rem; outline: none; }
+select { color-scheme: dark; background-color: #1c2129; }
+select option { background: #151922; color: #f4efe7; font-weight: 700; }
+select option:checked { background: #ffb35c; color: #120c08; }
+select option:disabled { background: #151922; color: #8e8176; }
 textarea { min-height: 6rem; resize: vertical; }
 
 .app-shell { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 1rem 0 4rem; }
