@@ -7,13 +7,13 @@ type BearCoachProps = {
 export function BearCoach({ message, onRoar, onNotify }: BearCoachProps) {
   return (
     <section className="bear-card">
-      <div className="bear-avatar" aria-label="Kodiak bear coach">ʕ•ᴥ•ʔ</div>
+      <img className="bear-avatar" src="/kodiak-coach.png" alt="Kodiak bear coach" />
       <div>
         <p className="eyebrow">Kodiak Coach</p>
         <h2>{message}</h2>
         <div className="row wrap">
-          <button className="secondary" onClick={onRoar}>Test Roar</button>
-          <button className="secondary" onClick={onNotify}>Test Kodiak Alert</button>
+          <button className="secondary" onClick={onRoar}>Roar</button>
+          <button className="secondary" onClick={onNotify}>Kodiak Alert</button>
         </div>
       </div>
     </section>
