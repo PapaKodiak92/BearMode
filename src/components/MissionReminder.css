@@ -3,13 +3,21 @@
   overflow: hidden;
 }
 
+.dashboard-grid > .mission-reminder.alarm-center {
+  grid-column: 1 / -1;
+}
+
+.dashboard-grid > .mission-reminder.alarm-center + .calm-panel {
+  display: none;
+}
+
 .mission-reminder::before {
   content: '';
   position: absolute;
-  inset: auto -20% -45% 25%;
-  height: 10rem;
+  inset: -18% -12% auto 42%;
+  height: 18rem;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 179, 92, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(255, 179, 92, 0.14), transparent 68%);
   pointer-events: none;
 }
 
@@ -22,75 +30,186 @@
   min-height: 100%;
 }
 
-.alarm-composer {
+.alarm-hero {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(16rem, 1fr) 9rem 9rem auto;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.alarm-hero__copy {
+  min-height: 12rem;
+  display: grid;
+  align-content: center;
+  padding: 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.4rem;
+  background: linear-gradient(135deg, rgba(255, 179, 92, 0.12), rgba(0, 0, 0, 0.18));
+}
+
+.alarm-hero__copy h2 {
+  max-width: 18ch;
+  font-size: clamp(2.1rem, 5vw, 4.2rem);
+}
+
+.alarm-hero__copy p:not(.eyebrow) {
+  max-width: 54rem;
+  margin: 0;
+  color: #d8ccbf;
+  font-size: 1.02rem;
+}
+
+.alarm-hero__status {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.alarm-hero__status div,
+.alarm-card-panel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.alarm-hero__status div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.95rem 1rem;
+}
+
+.alarm-hero__status span,
+.alarm-next-card p,
+.alarm-card span {
+  color: #a99d91;
+}
+
+.alarm-hero__status strong {
+  color: #fff4e5;
+  font-size: 1.25rem;
+}
+
+.alarm-control-deck {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.alarm-card-panel {
+  padding: 1rem;
+}
+
+.alarm-section-title,
+.alarm-list-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.alarm-section-title h3,
+.alarm-list-header h3,
+.alarm-next-card h3 {
+  margin: 0;
+  color: #fff6e8;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.alarm-composer {
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) 10rem 10rem;
   gap: 0.85rem;
   align-items: end;
-  margin-top: 1.1rem;
+  margin-top: 0.75rem;
+}
+
+.alarm-title-field {
+  min-width: 0;
 }
 
 .compact-field {
   min-width: 0;
 }
 
-.mission-reminder__preview {
-  position: relative;
-  z-index: 1;
+.alarm-composer .field {
+  margin: 0;
+}
+
+.alarm-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.alarm-next-card {
   display: grid;
-  gap: 0.2rem;
-  margin-top: 1rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(255, 179, 92, 0.28);
-  border-radius: 1.15rem;
-  background: rgba(255, 179, 92, 0.08);
+  align-content: space-between;
+  gap: 0.75rem;
 }
 
-.mission-reminder__preview strong {
-  color: #ffb35c;
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.alarm-next-card h3 {
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
 }
 
-.mission-reminder__preview span {
-  color: #fff1d8;
-  font-weight: 800;
+.alarm-next-card p {
+  margin: 0;
 }
 
-.quick-alarm-row {
+.quick-alarm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.quick-alarm-grid .alert-button {
+  grid-column: 1 / -1;
+}
+
+.alarm-list-header {
   position: relative;
   z-index: 1;
-  margin-top: 1rem;
+  align-items: center;
+  margin-top: 1.25rem;
 }
 
 .alarm-list {
   position: relative;
   z-index: 1;
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
-  margin-top: 1rem;
-  max-height: 24rem;
-  overflow: auto;
-  padding-right: 0.25rem;
+  margin-top: 0.8rem;
 }
 
 .alarm-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+  min-height: 9.5rem;
+  padding: 0.95rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
+  border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.035);
 }
 
 .alarm-card.is-armed {
-  border-color: rgba(255, 179, 92, 0.28);
-  background: linear-gradient(135deg, rgba(255, 179, 92, 0.12), rgba(255, 255, 255, 0.03));
+  border-color: rgba(255, 179, 92, 0.38);
+  background: linear-gradient(135deg, rgba(255, 179, 92, 0.16), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 16px 36px rgba(0, 0, 0, 0.18);
+}
+
+.alarm-card__main {
+  min-width: 0;
 }
 
 .alarm-card strong,
@@ -101,36 +220,93 @@
 .alarm-card strong {
   color: #fff6e8;
   font-size: 1rem;
+  line-height: 1.18;
 }
 
 .alarm-card span {
-  margin-top: 0.15rem;
-  color: #a99d91;
+  margin-top: 0.25rem;
   font-size: 0.85rem;
 }
 
 .alarm-card__actions {
-  display: flex;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
-  flex-shrink: 0;
+  align-self: end;
+}
+
+.alarm-toggle {
+  width: 2.75rem;
+  height: 1.55rem;
+  padding: 0.16rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.alarm-toggle span {
+  width: 1.12rem;
+  height: 1.12rem;
+  border-radius: 999px;
+  background: #8f8479;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.alarm-toggle.is-on {
+  background: rgba(255, 179, 92, 0.2);
+  border-color: rgba(255, 179, 92, 0.45);
+}
+
+.alarm-toggle.is-on span {
+  background: #ffb35c;
+  transform: translateX(1.06rem);
 }
 
 .mission-reminder__note {
   position: relative;
   z-index: 1;
-  margin-bottom: 0;
+  margin: 1rem 0 0;
+  max-width: 64rem;
   color: #a99d91;
   font-size: 0.85rem;
 }
 
-@media (max-width: 900px) {
-  .alarm-composer {
+@media (max-width: 1050px) {
+  .alarm-hero,
+  .alarm-control-deck {
     grid-template-columns: 1fr;
   }
 
-  .alarm-card,
-  .alarm-card__actions {
-    align-items: stretch;
+  .alarm-hero__status {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .alarm-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .alarm-hero__status,
+  .alarm-composer,
+  .alarm-list {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-hero__copy {
+    min-height: auto;
+  }
+
+  .quick-alarm-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .alarm-card__actions,
+  .alarm-composer-actions {
+    grid-template-columns: 1fr;
     flex-direction: column;
   }
 }
