@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import './MissionReminder.css';
 
+type CoachStyle = 'calm' | 'firm' | 'unhinged';
+
 type MissionReminderProps = {
   mission: string;
   alertPlaying: boolean;
-  onStartAlert: () => void;
+  onStartAlert: (message?: string) => void;
   onStopAlert: () => void;
 };
 
@@ -25,6 +27,7 @@ type LegacyReminder = {
 };
 
 const STORAGE_KEY = 'bearmode:mission-reminder';
+const APP_STATE_KEY = 'bearmode:mvp-state';
 
 const DEFAULT_ALARMS: KodiakAlarm[] = [
   {
@@ -85,6 +88,18 @@ function readAlarms(): KodiakAlarm[] {
   }
 }
 
+function readCoachStyle(): CoachStyle {
+  try {
+    const raw = window.localStorage.getItem(APP_STATE_KEY);
+    if (!raw) return 'firm';
+
+    const parsed = JSON.parse(raw) as { profile?: { coachStyle?: CoachStyle } };
+    return parsed.profile?.coachStyle || 'firm';
+  } catch {
+    return 'firm';
+  }
+}
+
 function saveAlarms(alarms: KodiakAlarm[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(alarms));
 }
@@ -137,12 +152,59 @@ function timeUntilLabel(target: Date) {
   return `${hours} hr ${minutes} min`;
 }
 
+function pickSmartAlarmLine(title: string, coachStyle: CoachStyle) {
+  const target = title.trim() || 'your mission';
+  const lower = target.toLowerCase();
+
+  const isWorkout = /workout|exercise|gym|lift|run|cardio|pushup|situp|squat|walk|move body/.test(lower);
+  const isOutside = /grass|outside|walk|sun|fresh air|nature/.test(lower);
+  const isWater = /water|hydrate|drink/.test(lower);
+  const isFocus = /focus|code|coding|project|build|work|study|write|podcast|edit/.test(lower);
+  const isMorning = /morning|wake|start|mission check/.test(lower);
+  const isReview = /bedtime|review|reflect|tomorrow|plan/.test(lower);
+  const isClean = /clean|room|trash|dishes|laundry|house/.test(lower);
+
+  if (coachStyle === 'calm') {
+    if (isWorkout) return `Time to move your body. Start small and keep going.`;
+    if (isOutside) return `Step outside for a reset. Fresh air first, overthinking later.`;
+    if (isWater) return `Drink some water and reset your system.`;
+    if (isFocus) return `One focused block. Protect your attention and start ${target}.`;
+    if (isMorning) return `Check your mission and choose the first small win.`;
+    if (isReview) return `Review the day. Keep the lessons, drop the shame.`;
+    if (isClean) return `Clean one small area. Make the room easier to exist in.`;
+    return `Time for ${target}. One small move is enough to restart.`;
+  }
+
+  if (coachStyle === 'unhinged') {
+    if (isWorkout) return `Get off your ass and work out.`;
+    if (isOutside) return `Go touch grass. Literally. Move.`;
+    if (isWater) return `Drink water, you dehydrated menace.`;
+    if (isFocus) return `Quit screwing around. Open ${target} and do the damn work.`;
+    if (isMorning) return `Get up. Pick the mission. Stop negotiating with the bed.`;
+    if (isReview) return `Stop doom-scrolling. Review the day and plan tomorrow.`;
+    if (isClean) return `Clean the damn mess. Five minutes. Start now.`;
+    return `Stop ignoring it. ${target}. Now.`;
+  }
+
+  if (isWorkout) return `Move now. Workout starts before motivation shows up.`;
+  if (isOutside) return `Step outside. Clear your head and get back on mission.`;
+  if (isWater) return `Hydrate. Then get back to work.`;
+  if (isFocus) return `Lock in on ${target}. One block. No wandering.`;
+  if (isMorning) return `Mission check. Pick the first win and move.`;
+  if (isReview) return `Review the day. Stack the lesson. Plan the next win.`;
+  if (isClean) return `Clean one area. Order outside, order inside.`;
+  return `Kodiak says: ${target}. Get it handled.`;
+}
+
 export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAlert }: MissionReminderProps) {
   const [alarms, setAlarms] = useState<KodiakAlarm[]>(readAlarms);
   const [draftTitle, setDraftTitle] = useState(mission || 'Get back on mission');
   const [draftTime, setDraftTime] = useState('09:00');
   const [draftRepeat, setDraftRepeat] = useState<KodiakAlarm['repeat']>('daily');
   const [now, setNow] = useState(new Date());
+
+  const coachStyle = readCoachStyle();
+  const draftKodiakLine = pickSmartAlarmLine(draftTitle || mission, coachStyle);
 
   useEffect(() => {
     saveAlarms(alarms);
@@ -169,8 +231,8 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
       };
     }));
 
-    onStartAlert();
-  }, [alarms, now, onStartAlert]);
+    onStartAlert(pickSmartAlarmLine(triggered.title, coachStyle));
+  }, [alarms, coachStyle, now, onStartAlert]);
 
   const nextAlarm = useMemo(() => getNextAlarm(alarms, now), [alarms, now]);
   const armedCount = alarms.filter((alarm) => alarm.enabled).length;
@@ -234,17 +296,17 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
           <div className="alarm-section-title">
             <div>
               <p className="eyebrow">Create</p>
-              <h3>Build an alert</h3>
+              <h3>Build a smart alert</h3>
             </div>
-            <span className="badge">{alarms.length} total</span>
+            <span className="badge">{coachStyle} mode</span>
           </div>
 
           <div className="alarm-composer">
             <label className="field alarm-title-field">
-              Alert name
+              Alert target
               <input
                 value={draftTitle}
-                placeholder={mission || 'Get back on mission.'}
+                placeholder={mission || 'Workout, coding sprint, drink water...'}
                 onChange={(event) => setDraftTitle(event.target.value)}
               />
             </label>
@@ -263,9 +325,14 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
             </label>
           </div>
 
+          <div className={`smart-alert-preview tone-${coachStyle}`}>
+            <span>Kodiak will say</span>
+            <strong>{draftKodiakLine}</strong>
+          </div>
+
           <div className="alarm-composer-actions">
-            <button onClick={addAlarm}>Add Alarm</button>
-            <button className="secondary" onClick={onStartAlert}>{alertPlaying ? 'Restart Kodiak' : 'Test Kodiak'}</button>
+            <button onClick={addAlarm}>Add Smart Alarm</button>
+            <button className="secondary" onClick={() => onStartAlert(draftKodiakLine)}>{alertPlaying ? 'Restart Kodiak' : 'Test Kodiak'}</button>
             <button className="secondary" onClick={onStopAlert} disabled={!alertPlaying}>Stop</button>
           </div>
         </section>
@@ -273,12 +340,12 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
         <aside className="alarm-card-panel alarm-next-card">
           <p className="eyebrow">Next roar</p>
           <h3>{nextAlarm ? displayTime(nextAlarm.alarm.time) : 'No target set'}</h3>
-          <p>{nextAlarm ? nextAlarm.alarm.title : 'Arm an alarm or use a quick timer.'}</p>
+          <p>{nextAlarm ? pickSmartAlarmLine(nextAlarm.alarm.title, coachStyle) : 'Arm an alarm or use a quick timer.'}</p>
 
           <div className="quick-alarm-grid">
-            <button className="secondary" onClick={() => addQuickAlarm(15)}>+15</button>
-            <button className="secondary" onClick={() => addQuickAlarm(30)}>+30</button>
-            <button className="secondary" onClick={() => addQuickAlarm(60)}>+60</button>
+            <button className="secondary" onClick={() => addQuickAlarm(15, 'Get back on mission')}>+15</button>
+            <button className="secondary" onClick={() => addQuickAlarm(30, 'Focus sprint')}>+30</button>
+            <button className="secondary" onClick={() => addQuickAlarm(60, 'Move body')}>+60</button>
             {alertPlaying && <button className="alert-button" onClick={snooze}>Snooze 5</button>}
           </div>
         </aside>
@@ -287,39 +354,45 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
       <div className="alarm-list-header">
         <div>
           <p className="eyebrow">Scheduled</p>
-          <h3>Alert list</h3>
+          <h3>Smart alert list</h3>
         </div>
         <span className="muted">{armedCount} armed · {disabledCount} idle</span>
       </div>
 
       <div className="alarm-list" aria-label="Kodiak alarms">
-        {alarms.map((alarm) => (
-          <article key={alarm.id} className={`alarm-card${alarm.enabled ? ' is-armed' : ''}`}>
-            <button
-              className={alarm.enabled ? 'alarm-toggle is-on' : 'alarm-toggle'}
-              onClick={() => updateAlarm(alarm.id, { enabled: !alarm.enabled, lastTriggeredDate: '' })}
-              aria-label={alarm.enabled ? `Disarm ${alarm.title}` : `Arm ${alarm.title}`}
-              aria-pressed={alarm.enabled}
-            >
-              <span />
-            </button>
+        {alarms.map((alarm) => {
+          const smartLine = pickSmartAlarmLine(alarm.title, coachStyle);
 
-            <div className="alarm-card__main">
-              <strong>{alarm.title}</strong>
-              <span>{displayTime(alarm.time)} · {alarm.repeat === 'daily' ? 'daily' : 'once'}</span>
-            </div>
-
-            <div className="alarm-card__actions">
+          return (
+            <article key={alarm.id} className={`alarm-card${alarm.enabled ? ' is-armed' : ''}`}>
               <button
-                className={alarm.enabled ? 'secondary' : undefined}
+                className={alarm.enabled ? 'alarm-toggle is-on' : 'alarm-toggle'}
                 onClick={() => updateAlarm(alarm.id, { enabled: !alarm.enabled, lastTriggeredDate: '' })}
+                aria-label={alarm.enabled ? `Disarm ${alarm.title}` : `Arm ${alarm.title}`}
+                aria-pressed={alarm.enabled}
               >
-                {alarm.enabled ? 'Disarm' : 'Arm'}
+                <span />
               </button>
-              <button className="secondary" onClick={() => removeAlarm(alarm.id)}>Remove</button>
-            </div>
-          </article>
-        ))}
+
+              <div className="alarm-card__main">
+                <strong>{alarm.title}</strong>
+                <span>{displayTime(alarm.time)} · {alarm.repeat === 'daily' ? 'daily' : 'once'}</span>
+                <em>{smartLine}</em>
+              </div>
+
+              <div className="alarm-card__actions">
+                <button
+                  className={alarm.enabled ? 'secondary' : undefined}
+                  onClick={() => updateAlarm(alarm.id, { enabled: !alarm.enabled, lastTriggeredDate: '' })}
+                >
+                  {alarm.enabled ? 'Disarm' : 'Arm'}
+                </button>
+                <button className="secondary" onClick={() => onStartAlert(smartLine)}>Test</button>
+                <button className="secondary" onClick={() => removeAlarm(alarm.id)}>Remove</button>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       <p className="mission-reminder__note">
