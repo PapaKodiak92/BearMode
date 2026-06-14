@@ -100,6 +100,13 @@ function localTimeValue(date = new Date()) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+function displayTime(value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 function addMinutesToNow(minutes: number) {
   const next = new Date(Date.now() + minutes * 60_000);
   return localTimeValue(next);
@@ -167,10 +174,11 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
 
   const nextAlarm = useMemo(() => getNextAlarm(alarms, now), [alarms, now]);
   const armedCount = alarms.filter((alarm) => alarm.enabled).length;
+  const disabledCount = alarms.length - armedCount;
 
   const statusLine = useMemo(() => {
-    if (alertPlaying) return 'Kodiak is roaring. Stop it, snooze it, or get moving.';
-    if (!nextAlarm) return 'No alarms armed. Kodiak is waiting for a target.';
+    if (alertPlaying) return 'Kodiak is live. Stop it, snooze it, or move.';
+    if (!nextAlarm) return 'No alarms armed. Pick a target and arm Kodiak.';
     return `${nextAlarm.alarm.title} roars in ${timeUntilLabel(nextAlarm.target)}.`;
   }, [alertPlaying, nextAlarm, now]);
 
@@ -198,60 +206,109 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
 
   return (
     <section className={`panel mission-reminder alarm-center${alertPlaying ? ' is-alerting' : ''}`}>
-      <div className="panel-header">
-        <div>
+      <div className="alarm-hero">
+        <div className="alarm-hero__copy">
           <p className="eyebrow">Alarm Center</p>
           <h2>Kodiak Alerts</h2>
           <p>{statusLine}</p>
         </div>
-        <span className="badge">{alertPlaying ? 'Roaring' : `${armedCount}/${alarms.length} armed`}</span>
+
+        <div className="alarm-hero__status" aria-label="Alarm summary">
+          <div>
+            <span>Current time</span>
+            <strong>{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>
+          </div>
+          <div>
+            <span>Armed</span>
+            <strong>{armedCount}</strong>
+          </div>
+          <div>
+            <span>Next roar</span>
+            <strong>{nextAlarm ? timeUntilLabel(nextAlarm.target) : 'None'}</strong>
+          </div>
+        </div>
       </div>
 
-      <div className="alarm-composer">
-        <label className="field">
-          What Kodiak is yelling about
-          <input
-            value={draftTitle}
-            placeholder={mission || 'Get back on mission.'}
-            onChange={(event) => setDraftTitle(event.target.value)}
-          />
-        </label>
+      <div className="alarm-control-deck">
+        <section className="alarm-card-panel alarm-composer-card">
+          <div className="alarm-section-title">
+            <div>
+              <p className="eyebrow">Create</p>
+              <h3>Build an alert</h3>
+            </div>
+            <span className="badge">{alarms.length} total</span>
+          </div>
 
-        <label className="field compact-field">
-          Time
-          <input type="time" value={draftTime} onChange={(event) => setDraftTime(event.target.value)} />
-        </label>
+          <div className="alarm-composer">
+            <label className="field alarm-title-field">
+              Alert name
+              <input
+                value={draftTitle}
+                placeholder={mission || 'Get back on mission.'}
+                onChange={(event) => setDraftTitle(event.target.value)}
+              />
+            </label>
 
-        <label className="field compact-field">
-          Repeat
-          <select value={draftRepeat} onChange={(event) => setDraftRepeat(event.target.value as KodiakAlarm['repeat'])}>
-            <option value="daily">Daily</option>
-            <option value="once">Once</option>
-          </select>
-        </label>
+            <label className="field compact-field">
+              Time
+              <input type="time" value={draftTime} onChange={(event) => setDraftTime(event.target.value)} />
+            </label>
 
-        <button onClick={addAlarm}>Add Alarm</button>
+            <label className="field compact-field">
+              Repeat
+              <select value={draftRepeat} onChange={(event) => setDraftRepeat(event.target.value as KodiakAlarm['repeat'])}>
+                <option value="daily">Daily</option>
+                <option value="once">Once</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="alarm-composer-actions">
+            <button onClick={addAlarm}>Add Alarm</button>
+            <button className="secondary" onClick={onStartAlert}>{alertPlaying ? 'Restart Kodiak' : 'Test Kodiak'}</button>
+            <button className="secondary" onClick={onStopAlert} disabled={!alertPlaying}>Stop</button>
+          </div>
+        </section>
+
+        <aside className="alarm-card-panel alarm-next-card">
+          <p className="eyebrow">Next roar</p>
+          <h3>{nextAlarm ? displayTime(nextAlarm.alarm.time) : 'No target set'}</h3>
+          <p>{nextAlarm ? nextAlarm.alarm.title : 'Arm an alarm or use a quick timer.'}</p>
+
+          <div className="quick-alarm-grid">
+            <button className="secondary" onClick={() => addQuickAlarm(15)}>+15</button>
+            <button className="secondary" onClick={() => addQuickAlarm(30)}>+30</button>
+            <button className="secondary" onClick={() => addQuickAlarm(60)}>+60</button>
+            {alertPlaying && <button className="alert-button" onClick={snooze}>Snooze 5</button>}
+          </div>
+        </aside>
       </div>
 
-      <div className="mission-reminder__preview" aria-live="polite">
-        <strong>Next roar:</strong>
-        <span>{nextAlarm ? `${nextAlarm.alarm.time} — ${nextAlarm.alarm.title}` : 'No armed alarms yet.'}</span>
-      </div>
-
-      <div className="row wrap quick-alarm-row">
-        <button className="secondary" onClick={() => addQuickAlarm(15)}>+15 Min</button>
-        <button className="secondary" onClick={() => addQuickAlarm(30)}>+30 Min</button>
-        <button className="secondary" onClick={() => addQuickAlarm(60)}>+60 Min</button>
-        {alertPlaying && <button className="alert-button" onClick={snooze}>Snooze 5</button>}
+      <div className="alarm-list-header">
+        <div>
+          <p className="eyebrow">Scheduled</p>
+          <h3>Alert list</h3>
+        </div>
+        <span className="muted">{armedCount} armed · {disabledCount} idle</span>
       </div>
 
       <div className="alarm-list" aria-label="Kodiak alarms">
         {alarms.map((alarm) => (
           <article key={alarm.id} className={`alarm-card${alarm.enabled ? ' is-armed' : ''}`}>
-            <div>
+            <button
+              className={alarm.enabled ? 'alarm-toggle is-on' : 'alarm-toggle'}
+              onClick={() => updateAlarm(alarm.id, { enabled: !alarm.enabled, lastTriggeredDate: '' })}
+              aria-label={alarm.enabled ? `Disarm ${alarm.title}` : `Arm ${alarm.title}`}
+              aria-pressed={alarm.enabled}
+            >
+              <span />
+            </button>
+
+            <div className="alarm-card__main">
               <strong>{alarm.title}</strong>
-              <span>{alarm.time} · {alarm.repeat === 'daily' ? 'daily' : 'once'}</span>
+              <span>{displayTime(alarm.time)} · {alarm.repeat === 'daily' ? 'daily' : 'once'}</span>
             </div>
+
             <div className="alarm-card__actions">
               <button
                 className={alarm.enabled ? 'secondary' : undefined}
@@ -266,7 +323,7 @@ export function MissionReminder({ mission, alertPlaying, onStartAlert, onStopAle
       </div>
 
       <p className="mission-reminder__note">
-        Web alarm note: keep BearMode open for now. Native mobile alarms come later when we wrap BearMode for phones.
+        Web alarm note: BearMode must stay open for browser alarms. Native background alarms come when BearMode gets wrapped for phones.
       </p>
     </section>
   );
