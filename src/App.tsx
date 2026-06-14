@@ -118,6 +118,7 @@ export default function App() {
     alertAudio.loop = true;
     kodiakAlertAudioRef.current = alertAudio;
     setKodiakAlertPlaying(true);
+    setCoachMessage('ROOOAR. Get back on mission.');
 
     void alertAudio.play().catch(() => {
       stopKodiakAlert();
@@ -132,7 +133,7 @@ export default function App() {
   }, [playRoar, showKodiakNotification, stopKodiakAlert]);
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${kodiakAlertPlaying ? ' alert-active' : ''}`}>
       <header className="hero">
         <nav>
           <strong>BearMode</strong>
@@ -148,7 +149,27 @@ export default function App() {
           </div>
 
           <div className="hero-side">
-            <img className="hero-bear" src="/kodiak-coach.png" alt="Kodiak bear coach" />
+            <img
+              className={`hero-bear${kodiakAlertPlaying ? ' roaring' : ''}`}
+              src="/kodiak-coach.png"
+              alt="Kodiak bear coach"
+            />
+
+            {kodiakAlertPlaying && (
+              <div className="kodiak-alarm-panel" role="status" aria-live="assertive">
+                <div className="sound-bars" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div>
+                  <strong>Kodiak is roaring</strong>
+                  <span>Alarm active — get back on mission or stop it.</span>
+                </div>
+                <button className="secondary alarm-stop" onClick={stopKodiakAlert}>Stop Alert</button>
+              </div>
+            )}
 
             <div className="hero-stats">
               <div className="stat-card">
