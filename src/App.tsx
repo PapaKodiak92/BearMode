@@ -14,6 +14,7 @@ const STORAGE_KEY = 'bearmode:mvp-state';
 const ROAR_SOUND_URL = '/roar.mp3';
 const KODIAK_ALERT_SOUND_URL = '/kodiak-alert.mp3';
 const KODIAK_ALERT_DURATION_MS = 41_000;
+const MIN_VALID_ALERT_SECONDS = 0.2;
 
 const fallbackState: BearModeState = {
   mainMission: 'Define the BearMode MVP and create the first repo.',
@@ -121,17 +122,50 @@ export default function App() {
     setKodiakAlertPlaying(true);
     setCoachMessage('ROOOAR. Get back on mission.');
 
-    void alertAudio.play().catch(() => {
-      stopKodiakAlert();
-      playRoar();
-    });
+    let fallbackStarted = false;
+
+    const startRoarLoopFallback = () => {
+      if (fallbackStarted || kodiakAlertAudioRef.current !== alertAudio) return;
+      fallbackStarted = true;
+
+      alertAudio.pause();
+      alertAudio.currentTime = 0;
+
+      const fallbackRoar = new Audio(ROAR_SOUND_URL);
+      fallbackRoar.volume = 0.92;
+      fallbackRoar.loop = true;
+      kodiakAlertAudioRef.current = fallbackRoar;
+
+      void fallbackRoar.play().catch(() => {
+        stopKodiakAlert();
+        playFallbackRoar();
+      });
+    };
+
+    const validateAlertAudio = () => {
+      const duration = alertAudio.duration;
+      if (!Number.isFinite(duration) || duration < MIN_VALID_ALERT_SECONDS) {
+        startRoarLoopFallback();
+      }
+    };
+
+    alertAudio.addEventListener('error', startRoarLoopFallback, { once: true });
+    alertAudio.addEventListener('loadedmetadata', validateAlertAudio, { once: true });
+
+    window.setTimeout(() => {
+      if (kodiakAlertAudioRef.current === alertAudio) {
+        validateAlertAudio();
+      }
+    }, 1_200);
+
+    void alertAudio.play().catch(startRoarLoopFallback);
 
     kodiakAlertTimeoutRef.current = window.setTimeout(() => {
       stopKodiakAlert();
     }, KODIAK_ALERT_DURATION_MS);
 
     void showKodiakNotification();
-  }, [playRoar, showKodiakNotification, stopKodiakAlert]);
+  }, [playFallbackRoar, showKodiakNotification, stopKodiakAlert]);
 
   return (
     <main className={`app-shell${kodiakAlertPlaying ? ' alert-active' : ''}`}>
