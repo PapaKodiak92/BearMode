@@ -3,6 +3,7 @@ import { BearCoach } from './components/BearCoach';
 import { DriftReset } from './components/DriftReset';
 import { FocusTimer } from './components/FocusTimer';
 import { KodiakAvatar } from './components/KodiakAvatar';
+import { MissionReminder } from './components/MissionReminder';
 import { ProgressPanel } from './components/ProgressPanel';
 import { TodayBoard } from './components/TodayBoard';
 import { randomBearLine } from './data/bearLines';
@@ -254,6 +255,13 @@ export default function App() {
             playRoar();
             addWin(`${state.focusMinutes}-minute focus block`, 'focus');
           }}
+        />
+
+        <MissionReminder
+          mission={state.mainMission}
+          alertPlaying={kodiakAlertPlaying}
+          onStartAlert={startKodiakAlert}
+          onStopAlert={stopKodiakAlert}
         />
 
         <DriftReset
