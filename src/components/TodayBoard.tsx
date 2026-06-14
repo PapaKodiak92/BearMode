@@ -1,4 +1,5 @@
 import type { Habit, SideQuest } from '../types';
+import './TodayBoard.css';
 
 type TodayBoardProps = {
   mainMission: string;
