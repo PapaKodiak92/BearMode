@@ -1,0 +1,152 @@
+.mission-board-card {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.mission-board-card h2 {
+  font-size: clamp(1.85rem, 3vw, 2.55rem);
+}
+
+.mission-board-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 0.8rem;
+}
+
+.mission-board-score {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+  color: #ffd49c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.compact-mission-field {
+  margin: 0 0 0.85rem;
+}
+
+.mission-textarea {
+  min-height: 4.35rem;
+  max-height: 5.25rem;
+  resize: none;
+  line-height: 1.35;
+}
+
+.mission-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.mission-subpanel {
+  display: grid;
+  gap: 0.7rem;
+  min-height: 18.5rem;
+  max-height: 18.5rem;
+  overflow: clip;
+  padding: 1rem;
+}
+
+.mission-subpanel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.mission-subpanel-header h3 {
+  margin: 0;
+}
+
+.mission-subpanel-header span {
+  color: #a99d91;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.compact-inline-add {
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.compact-inline-add input,
+.compact-inline-add button,
+.compact-row,
+.compact-row select {
+  min-height: 2.85rem;
+}
+
+.compact-inline-add input,
+.compact-row,
+.compact-row select {
+  border-radius: 0.85rem;
+}
+
+.compact-inline-add input {
+  padding: 0.68rem 0.85rem;
+}
+
+.compact-inline-add button {
+  padding: 0.68rem 0.95rem;
+}
+
+.mission-list {
+  align-content: start;
+  max-height: 12.25rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.compact-row {
+  padding: 0.62rem 0.75rem;
+}
+
+.compact-row select {
+  min-width: 8rem;
+  padding: 0.45rem 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .mission-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .mission-subpanel {
+    min-height: auto;
+    max-height: none;
+  }
+
+  .mission-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .mission-board-header {
+    display: grid;
+  }
+
+  .mission-board-score {
+    justify-items: start;
+  }
+
+  .compact-inline-add,
+  .compact-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-row {
+    align-items: stretch;
+  }
+
+  .compact-row select {
+    width: 100%;
+  }
+}
